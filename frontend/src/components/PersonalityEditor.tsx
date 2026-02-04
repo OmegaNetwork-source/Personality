@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X, Globe, Sparkles, Languages } from 'lucide-react'
 import './PersonalityEditor.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'https://hm4ztnlv0ctkie-8000.proxy.runpod.net'
 
 interface Personality {
   id: string
@@ -110,7 +110,6 @@ export default function PersonalityEditor({ personalities, onUpdate }: Props) {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify(personalityData)
       })
@@ -138,7 +137,6 @@ export default function PersonalityEditor({ personalities, onUpdate }: Props) {
       const response = await fetch(`${API_URL}/personalities/${id}`, {
         method: 'DELETE',
         headers: {
-          'ngrok-skip-browser-warning': 'true'
         }
       })
 
