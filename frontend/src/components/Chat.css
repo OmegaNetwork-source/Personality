@@ -41,6 +41,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  box-sizing: border-box;
 }
 
 .welcome-input {
@@ -594,25 +595,48 @@
     height: calc(100vh - 60px);
   }
 
+  .chat-welcome-screen {
+    padding: 20px 16px;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 60px;
+  }
+
+  .welcome-content {
+    width: 100%;
+    max-width: 100%;
+    gap: 24px;
+    padding: 0;
+  }
+
   .welcome-title {
     font-size: 28px;
-    padding: 0 20px;
+    padding: 0;
+    width: 100%;
+    text-align: center;
   }
 
   .welcome-input-container {
-    padding: 0 16px;
+    padding: 0;
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .welcome-input {
     font-size: 16px; /* Prevents zoom on iOS */
     padding: 14px 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .welcome-input-actions {
     position: static;
-    margin-top: 12px;
+    margin-top: 0;
     width: 100%;
     justify-content: center;
+    display: flex;
+    gap: 12px;
   }
 
   .input-action-btn {
@@ -682,8 +706,22 @@
 
 /* Small mobile devices */
 @media (max-width: 480px) {
+  .chat-welcome-screen {
+    padding: 16px 12px;
+    padding-top: 40px;
+  }
+
+  .welcome-content {
+    gap: 20px;
+  }
+
   .welcome-title {
     font-size: 24px;
+    padding: 0;
+  }
+
+  .welcome-input-container {
+    gap: 10px;
   }
 
   .message {
