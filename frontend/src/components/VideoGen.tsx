@@ -17,7 +17,7 @@ export default function VideoGen() {
     try {
       let response
 
-      const API_URL = import.meta.env.VITE_API_URL || 'https://hm4ztnlv0ctkie-8000.proxy.runpod.net'
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
       
       if (mode === 'text' && prompt.trim()) {
         response = await fetch(`${API_URL}/api/video/generate`, {

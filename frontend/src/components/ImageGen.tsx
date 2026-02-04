@@ -17,7 +17,7 @@ export default function ImageGen() {
     setGeneratedImage('')
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://hm4ztnlv0ctkie-8000.proxy.runpod.net'
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
       const response = await fetch(`${API_URL}/api/image/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
