@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Paperclip, Copy, Check } from 'lucide-react'
 import './Chat.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'https://hm4ztnlv0ctkie-8000.proxy.runpod.net'
 
 interface Props {
   personality: string
@@ -86,8 +86,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: userMessage,

@@ -7,7 +7,7 @@ import Navbar from './components/Navbar'
 import Settings from './components/Settings'
 import './App.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'https://hm4ztnlv0ctkie-8000.proxy.runpod.net'
 
 function App() {
   const [selectedPersonality, setSelectedPersonality] = useState('default')
@@ -37,7 +37,6 @@ function App() {
       const response = await fetch(`${API_URL}/personalities`, {
         method: 'GET',
         headers: {
-          'ngrok-skip-browser-warning': 'true',
           'Accept': 'application/json',
         },
       })
@@ -63,7 +62,7 @@ function App() {
       console.error('   2. API URL is correct:', API_URL)
       console.error('   3. CORS is configured correctly')
       console.error('   4. Network connection is working')
-      console.error('   5. ngrok tunnel is active')
+      console.error('   5. Backend service is accessible')
       
       // Set empty array on error so UI doesn't break
       setPersonalities([])
