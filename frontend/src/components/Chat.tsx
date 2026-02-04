@@ -188,19 +188,42 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   }
 
   // Extract HTML code blocks from message content
+  // Handles cases where personality text might be interspersed
   const extractHtmlBlocks = (content: string): Array<{ code: string; start: number; end: number; previewCode: string }> => {
     const blocks: Array<{ code: string; start: number; end: number; previewCode: string }> = []
-    // Match ```html ... ``` or ``` ... ``` that contains HTML-like content
-    const htmlBlockRegex = /```(?:html)?\s*\n([\s\S]*?)```/g
+    
+    // Strategy: Find code blocks, even if they're broken up by personality text
+    // Look for patterns like ```html or ``` followed by HTML content
+    
+    // First, try to find complete code blocks
+    const codeBlockRegex = /```(?:html|HTML)?\s*\n?([\s\S]*?)```/g
     let match
     
-    while ((match = htmlBlockRegex.exec(content)) !== null) {
-      const code = match[1].trim()
-      // Check if it looks like HTML (contains tags)
-      if (/<[a-z][\s\S]*>/i.test(code)) {
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      let code = match[1].trim()
+      
+      // Clean up code - remove personality interjections that might be in the code
+      // Look for patterns like "*smiles*" or "*laughs*" or similar personality expressions
+      const cleanedCode = code
+        .replace(/\*[^*]+\*/g, '') // Remove *text* patterns
+        .replace(/^[^*\n]*\*[^*\n]*$/gm, '') // Remove lines with only personality markers
+        .split('\n')
+        .filter(line => {
+          const trimmed = line.trim()
+          // Filter out lines that are just personality expressions
+          return trimmed && !trimmed.match(/^\*[^*]+\*$/) && !trimmed.match(/^[^*]*\*[^*]*$/)
+        })
+        .join('\n')
+        .trim()
+      
+      // Check if it looks like HTML (contains HTML tags)
+      const hasHtmlTags = /<[a-z][a-z0-9]*[\s>]/i.test(cleanedCode) || 
+                         /<(html|head|body|div|span|p|h[1-6]|a|button|input|form|img|script|style|ul|ol|li|table|tr|td|th|header|footer|nav|section|article|main|aside|meta|title|link)/i.test(cleanedCode)
+      
+      if (hasHtmlTags && cleanedCode.length > 10) { // Ensure we have actual code, not just fragments
         // Prepare preview code - wrap in HTML structure if it's a fragment
-        let previewCode = code
-        const isCompleteDocument = /<!DOCTYPE|<\s*html\s*>/i.test(code)
+        let previewCode = cleanedCode
+        const isCompleteDocument = /<!DOCTYPE|<\s*html\s*>/i.test(cleanedCode)
         if (!isCompleteDocument) {
           // Wrap fragment in basic HTML structure for preview
           previewCode = `<!DOCTYPE html>
@@ -211,18 +234,18 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   <title>Preview</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; padding: 20px; }
   </style>
 </head>
 <body>
-${code}
+${cleanedCode}
 </body>
 </html>`
         }
         
         blocks.push({
-          code, // Original code for display
-          previewCode, // Wrapped code for preview
+          code: code, // Original code with personality text for display (will be cleaned in render)
+          previewCode, // Cleaned code for preview
           start: match.index,
           end: match.index + match[0].length
         })
@@ -235,6 +258,17 @@ ${code}
   // Parse message content and render with code blocks
   const renderMessageContent = (content: string) => {
     const htmlBlocks = extractHtmlBlocks(content)
+    
+    // Debug logging (can be removed in production)
+    if (htmlBlocks.length > 0) {
+      console.log('✅ Found HTML blocks:', htmlBlocks.length, htmlBlocks)
+    } else {
+      // Check if content has code blocks at all (for debugging)
+      const hasCodeBlocks = /```[\s\S]*?```/.test(content)
+      if (hasCodeBlocks) {
+        console.log('⚠️ Found code blocks but no HTML detected. Content preview:', content.substring(0, 200))
+      }
+    }
     
     if (htmlBlocks.length === 0) {
       // No HTML blocks, render as plain text with basic markdown code block support
@@ -258,27 +292,38 @@ ${code}
       }
 
       // Add the code block with preview button
-      parts.push(
-        <div key={`html-block-${blockIndex}`} className="html-code-block">
-          <div className="code-block-header">
-            <span className="code-block-label">HTML</span>
-            <button
-              className="preview-button"
-              onClick={() => {
-                setPreviewHtml(block.previewCode)
-                setShowPreview(true)
-              }}
-              title="Preview HTML"
-            >
-              <Eye size={16} />
-              Preview
-            </button>
+      // Clean the displayed code too - remove personality interjections for better readability
+      const displayCode = block.code
+        .replace(/\*[^*]+\*/g, '') // Remove *text* patterns
+        .replace(/^[^*\n]*\*[^*\n]*$/gm, '') // Remove lines with only personality markers
+        .split('\n')
+        .filter(line => line.trim() && !line.match(/^\s*\*[^*]+\*\s*$/)) // Remove lines that are just personality text
+        .join('\n')
+        .trim()
+      
+      if (displayCode.length > 0) {
+        parts.push(
+          <div key={`html-block-${blockIndex}`} className="html-code-block">
+            <div className="code-block-header">
+              <span className="code-block-label">HTML</span>
+              <button
+                className="preview-button"
+                onClick={() => {
+                  setPreviewHtml(block.previewCode)
+                  setShowPreview(true)
+                }}
+                title="Preview HTML"
+              >
+                <Eye size={16} />
+                Preview
+              </button>
+            </div>
+            <pre className="code-block-content">
+              <code>{displayCode}</code>
+            </pre>
           </div>
-          <pre className="code-block-content">
-            <code>{block.code}</code>
-          </pre>
-        </div>
-      )
+        )
+      }
 
       lastIndex = block.end
     })
