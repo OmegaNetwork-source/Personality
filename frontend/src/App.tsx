@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Chat from './components/Chat'
+import AIToAIChat from './components/AIToAIChat'
 import Navbar from './components/Navbar'
 import Settings from './components/Settings'
 import './App.css'
@@ -95,6 +96,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Chat personality={selectedPersonality} userProfile={userProfile} aiProfile={aiProfile} />} />
             <Route path="/chat" element={<Chat personality={selectedPersonality} userProfile={userProfile} aiProfile={aiProfile} />} />
+            <Route path="/ai-to-ai" element={<AIToAIChat personalities={personalities} />} />
           </Routes>
           {showSettings && (
             <Settings

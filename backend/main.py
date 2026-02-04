@@ -57,6 +57,13 @@ class ChatRequest(BaseModel):
     user_profile: Optional[Dict[str, Any]] = None
     ai_profile: Optional[Dict[str, Any]] = None
 
+class AIToAIChatRequest(BaseModel):
+    personality1: str
+    personality2: str
+    conversation: Optional[List[Dict[str, str]]] = None
+    model: Optional[str] = None
+    max_turns: Optional[int] = 10
+
 class CodeRequest(BaseModel):
     code: str
     language: Optional[str] = None
@@ -142,6 +149,132 @@ async def delete_personality(personality_id: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# AI-to-AI Chat
+@app.post("/api/ai-to-ai/chat")
+async def ai_to_ai_chat(request: AIToAIChatRequest):
+    """AI-to-AI conversation where two personalities chat with each other"""
+    try:
+        print(f"[AI-to-AI] Request received: personality1={request.personality1}, personality2={request.personality2}, conversation_length={len(request.conversation or [])}")
+        
+        personality1 = personality_service.get_personality(request.personality1)
+        personality2 = personality_service.get_personality(request.personality2)
+        
+        print(f"[AI-to-AI] Loaded personalities: {personality1.get('name')} and {personality2.get('name')}")
+        
+        conversation = request.conversation or []
+        max_turns = request.max_turns or 10
+        
+        # If conversation is empty, AI 1 initiates
+        if len(conversation) == 0:
+            print("[AI-to-AI] Starting new conversation - AI 1 initiating...")
+            # AI 1 sends initial greeting
+            enhanced_prompt1 = ollama_service._build_system_prompt(personality1, None)
+            if enhanced_prompt1:
+                enhanced_prompt1 += "\n\nYou are starting a conversation with another AI. Greet them and start the conversation naturally based on your personality."
+            
+            print("[AI-to-AI] Getting AI 1 response...")
+            response1 = await ollama_service.chat(
+                "Start a conversation with the other AI. Greet them first.",
+                personality=None,  # Don't use personality here since we're providing custom system prompt
+                model=request.model,
+                context=[{"role": "system", "content": enhanced_prompt1}] if enhanced_prompt1 else None
+            )
+            
+            print(f"[AI-to-AI] AI 1 response received: {response1}")
+            # Try different response formats
+            ai1_message = (
+                response1.get("message", {}).get("content", "") or 
+                response1.get("response", "") or 
+                str(response1.get("content", "")) or
+                "Hello."
+            )
+            if not ai1_message or ai1_message == "Hello.":
+                print(f"[AI-to-AI] WARNING: Could not extract AI 1 message, full response: {response1}")
+            print(f"[AI-to-AI] AI 1 message: {ai1_message}")
+            conversation.append({"role": "ai1", "content": ai1_message, "name": personality1.get("name", "AI 1")})
+            
+            # AI 2 responds
+            print("[AI-to-AI] Getting AI 2 response...")
+            enhanced_prompt2 = ollama_service._build_system_prompt(personality2, None)
+            if enhanced_prompt2:
+                enhanced_prompt2 += f"\n\nYou are in a conversation with another AI named {personality1.get('name', 'AI 1')}. They just said: '{ai1_message}'. Respond naturally based on your personality."
+            
+            response2 = await ollama_service.chat(
+                f"The other AI ({personality1.get('name', 'AI 1')}) said: '{ai1_message}'. How do you respond?",
+                personality=None,  # Don't use personality here since we're providing custom system prompt
+                model=request.model,
+                context=[{"role": "system", "content": enhanced_prompt2}] if enhanced_prompt2 else None
+            )
+            
+            print(f"[AI-to-AI] AI 2 response received: {response2}")
+            # Try different response formats
+            ai2_message = (
+                response2.get("message", {}).get("content", "") or 
+                response2.get("response", "") or 
+                str(response2.get("content", "")) or
+                "Hi there."
+            )
+            if not ai2_message or ai2_message == "Hi there.":
+                print(f"[AI-to-AI] WARNING: Could not extract AI 2 message, full response: {response2}")
+            print(f"[AI-to-AI] AI 2 message: {ai2_message}")
+            conversation.append({"role": "ai2", "content": ai2_message, "name": personality2.get("name", "AI 2")})
+            
+            print(f"[AI-to-AI] Returning conversation with {len(conversation)} messages")
+            return {
+                "conversation": conversation,
+                "turn": 1
+            }
+        else:
+            # Continue conversation - alternate between AI 1 and AI 2
+            last_message = conversation[-1]
+            is_ai1_turn = last_message.get("role") == "ai2"
+            current_personality = personality1 if is_ai1_turn else personality2
+            other_personality = personality2 if is_ai1_turn else personality1
+            current_role = "ai1" if is_ai1_turn else "ai2"
+            current_name = personality1.get("name", "AI 1") if is_ai1_turn else personality2.get("name", "AI 2")
+            other_name = personality2.get("name", "AI 2") if is_ai1_turn else personality1.get("name", "AI 1")
+            
+            # Build conversation context
+            context_messages = []
+            
+            # Add conversation history (last 6 messages for context)
+            for msg in conversation[-6:]:
+                if msg.get("role") == "ai1":
+                    context_messages.append({"role": "assistant", "content": f"{personality1.get('name', 'AI 1')}: {msg.get('content', '')}"})
+                elif msg.get("role") == "ai2":
+                    context_messages.append({"role": "assistant", "content": f"{personality2.get('name', 'AI 2')}: {msg.get('content', '')}"})
+            
+            # Enhanced system prompt
+            enhanced_prompt = ollama_service._build_system_prompt(current_personality, None)
+            if enhanced_prompt:
+                enhanced_prompt += f"\n\nYou are in a conversation with another AI named {other_name}. Continue the conversation naturally based on your personality. The other AI just said: '{last_message.get('content', '')}'"
+            
+            # Build full context with system prompt
+            full_context = []
+            if enhanced_prompt:
+                full_context.append({"role": "system", "content": enhanced_prompt})
+            full_context.extend(context_messages)
+            
+            response = await ollama_service.chat(
+                f"Continue the conversation. {other_name} just said: '{last_message.get('content', '')}'. Respond naturally.",
+                personality=None,  # Don't use personality here since we're providing custom system prompt
+                model=request.model,
+                context=full_context if full_context else None
+            )
+            
+            new_message = response.get("message", {}).get("content", "...")
+            conversation.append({"role": current_role, "content": new_message, "name": current_name})
+            
+            return {
+                "conversation": conversation,
+                "turn": len([m for m in conversation if m.get("role") in ["ai1", "ai2"]])
+            }
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Chat/Text Generation
