@@ -16,7 +16,7 @@ export default function Navbar({ userProfile, aiProfile, onSettingsClick }: Prop
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="nav-logo">
-          <span className="logo-text">AI Personality Platform</span>
+          <span className="logo-text">CharacterOS</span>
         </Link>
         <div className="nav-links">
           {userProfile && (
