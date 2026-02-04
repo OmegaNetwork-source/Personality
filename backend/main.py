@@ -403,6 +403,14 @@ async def generate_image(request: ImageRequest):
 async def generate_video(request: VideoRequest):
     """Generate video from text prompt or image (no filters)"""
     try:
+        # Check if service is available
+        is_healthy = await video_service.check_health()
+        if not is_healthy:
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Video generation service is not available. Make sure ComfyUI is running at {video_service.base_url}"
+            )
+        
         result = await video_service.generate(
             prompt=request.prompt,
             image_url=request.image_url,
@@ -411,20 +419,34 @@ async def generate_video(request: VideoRequest):
             seed=request.seed
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[API] Video generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/video/generate-from-image")
 async def generate_video_from_image(file: UploadFile = File(...), duration: int = 4):
     """Generate video from uploaded image"""
     try:
+        # Check if service is available
+        is_healthy = await video_service.check_health()
+        if not is_healthy:
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Video generation service is not available. Make sure ComfyUI is running at {video_service.base_url}"
+            )
+        
         image_data = await file.read()
         result = await video_service.generate_from_image(
             image_data=image_data,
             duration=duration
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[API] Video generation from image error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
