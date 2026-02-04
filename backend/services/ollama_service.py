@@ -54,7 +54,13 @@ class OllamaService:
                 json={
                     "model": model,
                     "messages": messages,
-                    "stream": False
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.9,
+                        "top_p": 0.95,
+                        "repeat_penalty": 1.1,
+                        "num_ctx": 4096
+                    }
                 }
             )
             response.raise_for_status()
