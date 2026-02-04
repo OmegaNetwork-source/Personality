@@ -166,24 +166,23 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
         conversation = request.conversation or []
         max_turns = request.max_turns or 10
         
-        # If conversation is empty, AI 1 initiates
+        # If conversation is empty, AI 1 initiates (return only AI 1's message)
         if len(conversation) == 0:
             print("[AI-to-AI] Starting new conversation - AI 1 initiating...")
             # AI 1 sends initial greeting
             enhanced_prompt1 = ollama_service._build_system_prompt(personality1, None)
             if enhanced_prompt1:
-                enhanced_prompt1 += "\n\nYou are starting a conversation with another AI. Greet them and start the conversation naturally based on your personality."
+                enhanced_prompt1 += "\n\nYou are starting a conversation with another person. Greet them and start the conversation naturally based on your personality."
             
             print("[AI-to-AI] Getting AI 1 response...")
             response1 = await ollama_service.chat(
-                "Start a conversation with the other AI. Greet them first.",
-                personality=None,  # Don't use personality here since we're providing custom system prompt
+                "Start a conversation. Greet them first.",
+                personality=None,
                 model=request.model,
                 context=[{"role": "system", "content": enhanced_prompt1}] if enhanced_prompt1 else None
             )
             
             print(f"[AI-to-AI] AI 1 response received: {response1}")
-            # Try different response formats
             ai1_message = (
                 response1.get("message", {}).get("content", "") or 
                 response1.get("response", "") or 
@@ -195,61 +194,40 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
             print(f"[AI-to-AI] AI 1 message: {ai1_message}")
             conversation.append({"role": "ai1", "content": ai1_message, "name": personality1.get("name", "AI 1")})
             
-            # AI 2 responds
-            print("[AI-to-AI] Getting AI 2 response...")
-            enhanced_prompt2 = ollama_service._build_system_prompt(personality2, None)
-            if enhanced_prompt2:
-                enhanced_prompt2 += f"\n\nYou are in a conversation with another AI named {personality1.get('name', 'AI 1')}. They just said: '{ai1_message}'. Respond naturally based on your personality."
-            
-            response2 = await ollama_service.chat(
-                f"The other AI ({personality1.get('name', 'AI 1')}) said: '{ai1_message}'. How do you respond?",
-                personality=None,  # Don't use personality here since we're providing custom system prompt
-                model=request.model,
-                context=[{"role": "system", "content": enhanced_prompt2}] if enhanced_prompt2 else None
-            )
-            
-            print(f"[AI-to-AI] AI 2 response received: {response2}")
-            # Try different response formats
-            ai2_message = (
-                response2.get("message", {}).get("content", "") or 
-                response2.get("response", "") or 
-                str(response2.get("content", "")) or
-                "Hi there."
-            )
-            if not ai2_message or ai2_message == "Hi there.":
-                print(f"[AI-to-AI] WARNING: Could not extract AI 2 message, full response: {response2}")
-            print(f"[AI-to-AI] AI 2 message: {ai2_message}")
-            conversation.append({"role": "ai2", "content": ai2_message, "name": personality2.get("name", "AI 2")})
-            
-            print(f"[AI-to-AI] Returning conversation with {len(conversation)} messages")
+            # Return only AI 1's message - frontend will call again for AI 2
+            print(f"[AI-to-AI] Returning AI 1 message only")
             return {
                 "conversation": conversation,
-                "turn": 1
+                "turn": 1,
+                "next_turn": "ai2"  # Indicate who should respond next
             }
         else:
-            # Continue conversation - alternate between AI 1 and AI 2
+            # Continue conversation - determine who should respond next
             last_message = conversation[-1]
             is_ai1_turn = last_message.get("role") == "ai2"
             current_personality = personality1 if is_ai1_turn else personality2
-            other_personality = personality2 if is_ai1_turn else personality1
             current_role = "ai1" if is_ai1_turn else "ai2"
             current_name = personality1.get("name", "AI 1") if is_ai1_turn else personality2.get("name", "AI 2")
             other_name = personality2.get("name", "AI 2") if is_ai1_turn else personality1.get("name", "AI 1")
             
-            # Build conversation context
+            # Build conversation context - CRITICAL: Make the other AI's messages appear as "user" messages
+            # This "tricks" the current AI into thinking it's talking to a human/user
             context_messages = []
             
-            # Add conversation history (last 6 messages for context)
-            for msg in conversation[-6:]:
-                if msg.get("role") == "ai1":
-                    context_messages.append({"role": "assistant", "content": f"{personality1.get('name', 'AI 1')}: {msg.get('content', '')}"})
-                elif msg.get("role") == "ai2":
-                    context_messages.append({"role": "assistant", "content": f"{personality2.get('name', 'AI 2')}: {msg.get('content', '')}"})
+            # Add conversation history (last 8 messages for context)
+            # Format: Other AI's messages = "user", Current AI's messages = "assistant"
+            for msg in conversation[-8:]:
+                if msg.get("role") == current_role:
+                    # Current AI's own messages are "assistant"
+                    context_messages.append({"role": "assistant", "content": msg.get("content", "")})
+                else:
+                    # Other AI's messages are "user" - this tricks the current AI!
+                    context_messages.append({"role": "user", "content": msg.get("content", "")})
             
-            # Enhanced system prompt
+            # Enhanced system prompt - don't mention it's another AI, just a conversation
             enhanced_prompt = ollama_service._build_system_prompt(current_personality, None)
             if enhanced_prompt:
-                enhanced_prompt += f"\n\nYou are in a conversation with another AI named {other_name}. Continue the conversation naturally based on your personality. The other AI just said: '{last_message.get('content', '')}'"
+                enhanced_prompt += f"\n\nYou are in a conversation. Continue naturally based on your personality. The other person just said: '{last_message.get('content', '')}'"
             
             # Build full context with system prompt
             full_context = []
@@ -257,19 +235,31 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
                 full_context.append({"role": "system", "content": enhanced_prompt})
             full_context.extend(context_messages)
             
+            # Use the last message as the user input (this tricks the AI)
+            user_message = last_message.get("content", "")
+            
             response = await ollama_service.chat(
-                f"Continue the conversation. {other_name} just said: '{last_message.get('content', '')}'. Respond naturally.",
-                personality=None,  # Don't use personality here since we're providing custom system prompt
+                user_message,  # Use the other AI's message as the user input
+                personality=None,
                 model=request.model,
                 context=full_context if full_context else None
             )
             
-            new_message = response.get("message", {}).get("content", "...")
+            new_message = (
+                response.get("message", {}).get("content", "") or 
+                response.get("response", "") or 
+                str(response.get("content", "")) or
+                "..."
+            )
             conversation.append({"role": current_role, "content": new_message, "name": current_name})
+            
+            # Determine next turn
+            next_turn = "ai2" if current_role == "ai1" else "ai1"
             
             return {
                 "conversation": conversation,
-                "turn": len([m for m in conversation if m.get("role") in ["ai1", "ai2"]])
+                "turn": len([m for m in conversation if m.get("role") in ["ai1", "ai2"]]),
+                "next_turn": next_turn
             }
             
     except Exception as e:

@@ -13,6 +13,7 @@ export default function AIToAIChat({ personalities }: Props) {
   const [ai2, setAI2] = useState<string>('')
   const [conversation, setConversation] = useState<Array<{ role: string; content: string; name?: string }>>([])
   const [loading, setLoading] = useState(false)
+  const [loadingFor, setLoadingFor] = useState<'ai1' | 'ai2' | null>(null)
   const [autoContinue, setAutoContinue] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -36,11 +37,11 @@ export default function AIToAIChat({ personalities }: Props) {
         if (!loading) {
           continueConversation()
         }
-      }, 2000) // Wait 2 seconds before continuing
+      }, 1500) // Wait 1.5 seconds before continuing
       return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.length, autoContinue])
+  }, [conversation.length, autoContinue, loading])
 
   const startConversation = async () => {
     if (!ai1 || !ai2) {
@@ -54,13 +55,14 @@ export default function AIToAIChat({ personalities }: Props) {
     }
 
     setLoading(true)
+    setLoadingFor('ai1')
     setConversation([])
 
     try {
       console.log('🚀 Starting AI-to-AI conversation:', { ai1, ai2 })
-      console.log('📡 API URL:', `${API_URL}/api/ai-to-ai/chat`)
       
-      const response = await fetch(`${API_URL}/api/ai-to-ai/chat`, {
+      // Step 1: Get AI 1's initial message
+      const response1 = await fetch(`${API_URL}/api/ai-to-ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,41 +76,71 @@ export default function AIToAIChat({ personalities }: Props) {
         })
       })
 
-      console.log('📡 Response status:', response.status, response.statusText)
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Response error:', errorText)
-        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      if (!response1.ok) {
+        const errorText = await response1.text()
+        throw new Error(`HTTP ${response1.status}: ${errorText}`)
       }
 
-      const data = await response.json()
-      console.log('✅ Conversation data received:', data)
-      console.log('💬 Conversation messages:', data.conversation?.length || 0)
+      const data1 = await response1.json()
+      console.log('✅ AI 1 message received:', data1)
       
-      if (data.conversation && Array.isArray(data.conversation)) {
-        setConversation(data.conversation)
-        console.log('✅ Conversation state updated')
+      if (data1.conversation && Array.isArray(data1.conversation)) {
+        setConversation(data1.conversation)
+        
+        // Step 2: Immediately get AI 2's response
+        setLoadingFor('ai2')
+        await new Promise(resolve => setTimeout(resolve, 500)) // Small delay for UX
+        
+        const response2 = await fetch(`${API_URL}/api/ai-to-ai/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: JSON.stringify({
+            personality1: ai1,
+            personality2: ai2,
+            conversation: data1.conversation,
+            max_turns: 10
+          })
+        })
+
+        if (!response2.ok) {
+          const errorText = await response2.text()
+          throw new Error(`HTTP ${response2.status}: ${errorText}`)
+        }
+
+        const data2 = await response2.json()
+        console.log('✅ AI 2 message received:', data2)
+        
+        if (data2.conversation && Array.isArray(data2.conversation)) {
+          setConversation(data2.conversation)
+        }
       } else {
-        console.error('❌ Invalid conversation data:', data)
-        alert('Received invalid response from server. Check console for details.')
+        console.error('❌ Invalid conversation data:', data1)
+        alert('Received invalid response from server.')
       }
     } catch (error: any) {
       console.error('❌ Failed to start conversation:', error)
-      console.error('Error details:', error.message, error.stack)
-      alert(`Failed to start conversation: ${error.message || 'Unknown error'}. Check console for details.`)
+      alert(`Failed to start conversation: ${error.message || 'Unknown error'}`)
     } finally {
       setLoading(false)
+      setLoadingFor(null)
     }
   }
 
   const continueConversation = async () => {
     if (!ai1 || !ai2 || conversation.length === 0) return
 
+    const lastMessage = conversation[conversation.length - 1]
+    const nextTurn = lastMessage.role === 'ai1' ? 'ai2' : 'ai1'
+    
     setLoading(true)
+    setLoadingFor(nextTurn)
 
     try {
       console.log('🔄 Continuing conversation, current length:', conversation.length)
+      console.log('👤 Next turn:', nextTurn)
       
       const response = await fetch(`${API_URL}/api/ai-to-ai/chat`, {
         method: 'POST',
@@ -124,11 +156,8 @@ export default function AIToAIChat({ personalities }: Props) {
         })
       })
 
-      console.log('📡 Continue response status:', response.status)
-
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ Continue error:', errorText)
         throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
 
@@ -146,6 +175,7 @@ export default function AIToAIChat({ personalities }: Props) {
       alert(`Failed to continue conversation: ${error.message || 'Unknown error'}`)
     } finally {
       setLoading(false)
+      setLoadingFor(null)
     }
   }
 
@@ -225,22 +255,35 @@ export default function AIToAIChat({ personalities }: Props) {
             const isAI1 = msg.role === 'ai1'
             const name = msg.name || (isAI1 ? ai1Name : ai2Name)
             return (
-              <div key={idx} className={`ai-message ${msg.role}`}>
-                <div className="ai-message-header">
-                  <Bot size={16} />
-                  <span className="ai-name">{name}</span>
-                  <span className="ai-badge">{isAI1 ? 'AI 1' : 'AI 2'}</span>
+              <div key={idx} className="ai-message-wrapper">
+                <div className={`ai-message ${msg.role}`}>
+                  <div className="ai-message-content-wrapper">
+                    <div className="ai-message-header">
+                      <span className="ai-name">{name}</span>
+                      <span className="ai-badge">{isAI1 ? 'AI 1' : 'AI 2'}</span>
+                    </div>
+                    <div className="ai-message-content">{msg.content}</div>
+                  </div>
                 </div>
-                <div className="ai-message-content">{msg.content}</div>
               </div>
             )
           })
         )}
-        {loading && (
-          <div className="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
+        {loading && loadingFor && (
+          <div className="ai-message-wrapper">
+            <div className={`ai-message ${loadingFor}`}>
+              <div className="ai-message-content-wrapper">
+                <div className="ai-message-header">
+                  <span className="ai-name">{loadingFor === 'ai1' ? ai1Name : ai2Name}</span>
+                  <span className="ai-badge">{loadingFor === 'ai1' ? 'AI 1' : 'AI 2'}</span>
+                </div>
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         <div ref={messagesEndRef} />
