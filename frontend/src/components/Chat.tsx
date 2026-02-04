@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip } from 'lucide-react'
+import { Send, Paperclip, Copy, Check } from 'lucide-react'
 import './Chat.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
@@ -14,6 +14,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -34,6 +35,16 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     if (file) {
       // Handle file upload - you can add file processing logic here
       console.log('File selected:', file.name)
+    }
+  }
+
+  const handleCopy = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedIndex(index)
+      setTimeout(() => setCopiedIndex(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
     }
   }
 
@@ -123,7 +134,20 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
             {messages.map((msg, idx) => (
               <div key={idx} className={`message-wrapper ${msg.role}`}>
                 <div className={`message ${msg.role}`}>
-                  <div className="message-content">{msg.content}</div>
+                  <div className="message-content-wrapper">
+                    <div className="message-content">{msg.content}</div>
+                    <button 
+                      className="copy-button"
+                      onClick={() => handleCopy(msg.content, idx)}
+                      title="Copy message"
+                    >
+                      {copiedIndex === idx ? (
+                        <Check size={16} />
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

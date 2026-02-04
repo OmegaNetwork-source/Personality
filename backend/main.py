@@ -116,10 +116,15 @@ async def chat(request: ChatRequest):
             ai_info = f"AI profile: {request.ai_profile.get('name', 'AI Assistant')} is {request.ai_profile.get('ethnicity', '')} {request.ai_profile.get('gender', '')}"
             if request.ai_profile.get('traits'):
                 ai_info += f". Traits: {', '.join(request.ai_profile.get('traits', []))}"
+            if request.ai_profile.get('preferredLanguage'):
+                ai_info += f". Preferred language: {request.ai_profile.get('preferredLanguage')}"
             enhanced_context.insert(0, {
                 "role": "system",
                 "content": ai_info
             })
+        
+        # Pass preferred language to personality system prompt builder
+        preferred_language = request.ai_profile.get('preferredLanguage') if request.ai_profile else None
         
         if request.stream:
             return StreamingResponse(
@@ -127,7 +132,8 @@ async def chat(request: ChatRequest):
                     request.message,
                     personality=personality,
                     model=request.model,
-                    context=enhanced_context if enhanced_context else None
+                    context=enhanced_context if enhanced_context else None,
+                    preferred_language=preferred_language
                 ),
                 media_type="text/event-stream"
             )
@@ -136,7 +142,8 @@ async def chat(request: ChatRequest):
                 request.message,
                 personality=personality,
                 model=request.model,
-                context=enhanced_context if enhanced_context else None
+                context=enhanced_context if enhanced_context else None,
+                preferred_language=preferred_language
             )
             return response
     except Exception as e:

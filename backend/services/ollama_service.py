@@ -29,13 +29,14 @@ class OllamaService:
         message: str,
         personality: Optional[Dict[str, Any]] = None,
         model: Optional[str] = None,
-        context: Optional[List[Dict[str, Any]]] = None
+        context: Optional[List[Dict[str, Any]]] = None,
+        preferred_language: Optional[str] = None
     ) -> Dict[str, Any]:
         """Send chat message to Ollama"""
         model = model or self.default_model
         
         # Build system prompt with personality
-        system_prompt = self._build_system_prompt(personality)
+        system_prompt = self._build_system_prompt(personality, preferred_language)
         
         # Build messages with context
         messages = []
@@ -64,12 +65,13 @@ class OllamaService:
         message: str,
         personality: Optional[Dict[str, Any]] = None,
         model: Optional[str] = None,
-        context: Optional[List[Dict[str, Any]]] = None
+        context: Optional[List[Dict[str, Any]]] = None,
+        preferred_language: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """Stream chat response from Ollama"""
         model = model or self.default_model
         
-        system_prompt = self._build_system_prompt(personality)
+        system_prompt = self._build_system_prompt(personality, preferred_language)
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -239,19 +241,91 @@ Provide the refactored code with explanations of improvements."""
                 "model": model
             }
     
-    def _build_system_prompt(self, personality: Optional[Dict[str, Any]]) -> Optional[str]:
-        """Build system prompt from personality"""
+    def _build_system_prompt(self, personality: Optional[Dict[str, Any]], preferred_language: Optional[str] = None) -> Optional[str]:
+        """Build enhanced system prompt from personality with cultural context"""
         if not personality:
             return None
         
         system_prompt = personality.get("system_prompt", "")
         traits = personality.get("traits", [])
         
+        # Build enhanced prompt with cultural context
+        prompt_parts = []
+        
+        if system_prompt:
+            prompt_parts.append(system_prompt)
+        
         if traits:
             trait_text = ", ".join(traits)
-            if system_prompt:
-                system_prompt += f"\n\nPersonality traits: {trait_text}"
-            else:
-                system_prompt = f"Personality traits: {trait_text}"
+            prompt_parts.append(f"Personality traits: {trait_text}")
         
-        return system_prompt if system_prompt else None
+        # Add language preferences
+        language_info = personality.get("language", {})
+        if language_info:
+            primary_langs = language_info.get("primary", [])
+            preference = language_info.get("preference", "")
+            code_switching = language_info.get("code_switching", False)
+            
+            if primary_langs:
+                # If user specified a preferred language, prioritize it
+                if preferred_language and preferred_language in primary_langs:
+                    lang_text = f"Languages: Your PRIMARY language for communication is {preferred_language}. You can also communicate in {', '.join([l for l in primary_langs if l != preferred_language])} when appropriate."
+                else:
+                    lang_text = f"Languages: You can communicate in {', '.join(primary_langs)}"
+                
+                if code_switching:
+                    lang_text += ". You naturally code-switch between languages when appropriate."
+                if preference:
+                    lang_text += f" {preference}"
+                prompt_parts.append(lang_text)
+        
+        # Add cultural context
+        cultural_context = personality.get("cultural_context", {})
+        if cultural_context:
+            cultural_parts = []
+            
+            values = cultural_context.get("values", [])
+            if values:
+                cultural_parts.append(f"Core values: {', '.join(values)}")
+            
+            traditions = cultural_context.get("traditions", [])
+            if traditions:
+                cultural_parts.append(f"Cultural traditions: {', '.join(traditions)}")
+            
+            comm_style = cultural_context.get("communication_style", "")
+            if comm_style:
+                cultural_parts.append(f"Communication style: {comm_style}")
+            
+            greeting_style = cultural_context.get("greeting_style", "")
+            if greeting_style:
+                cultural_parts.append(f"Greeting style: {greeting_style}")
+            
+            references = cultural_context.get("cultural_references", [])
+            if references:
+                cultural_parts.append(f"You naturally reference: {', '.join(references)}")
+            
+            emoji_usage = cultural_context.get("emoji_usage", "")
+            if emoji_usage:
+                cultural_parts.append(f"Emoji usage: {emoji_usage}")
+            
+            if cultural_parts:
+                prompt_parts.append("\nCultural Context:")
+                prompt_parts.extend(cultural_parts)
+        
+        # Add examples if available
+        examples = personality.get("examples", {})
+        if examples:
+            example_parts = []
+            if examples.get("greeting"):
+                example_parts.append(f"Example greeting: {examples['greeting']}")
+            if examples.get("response_style"):
+                example_parts.append(f"Example response style: {examples['response_style']}")
+            
+            if example_parts:
+                prompt_parts.append("\nExamples:")
+                prompt_parts.extend(example_parts)
+        
+        # Combine all parts
+        final_prompt = "\n".join(prompt_parts)
+        
+        return final_prompt if final_prompt.strip() else None

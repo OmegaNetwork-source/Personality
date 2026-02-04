@@ -17,12 +17,22 @@ interface AIProfile {
   gender: string
   name: string
   traits: string[]
+  preferredLanguage?: string
 }
 
 interface Props {
   userProfile: UserProfile | null
   aiProfile: AIProfile | null
-  personalities: Array<{ id: string; name: string; description: string }>
+  personalities: Array<{ 
+    id: string
+    name: string
+    description: string
+    language?: {
+      primary: string[]
+      preference?: string
+      code_switching?: boolean
+    }
+  }>
   onSave: (userProfile: UserProfile, aiProfile: AIProfile) => void
   onClose: () => void
 }
@@ -42,7 +52,8 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
     ethnicity: aiProfile?.ethnicity || '',
     gender: aiProfile?.gender || '',
     name: aiProfile?.name || '',
-    traits: aiProfile?.traits || []
+    traits: aiProfile?.traits || [],
+    preferredLanguage: aiProfile?.preferredLanguage || ''
   })
 
   const ethnicities = [
@@ -175,7 +186,20 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                   <label>Personality Type *</label>
                   <select
                     value={aiForm.personality}
-                    onChange={(e) => setAIForm({ ...aiForm, personality: e.target.value })}
+                    onChange={(e) => {
+                      const newPersonality = e.target.value
+                      const selectedPersonality = personalities.find(p => p.id === newPersonality)
+                      const availableLanguages = selectedPersonality?.language?.primary || []
+                      // Keep preferred language if it's still available, otherwise use first available or empty
+                      const newPreferredLanguage = availableLanguages.includes(aiForm.preferredLanguage || '')
+                        ? aiForm.preferredLanguage
+                        : (availableLanguages[0] || '')
+                      setAIForm({ 
+                        ...aiForm, 
+                        personality: newPersonality,
+                        preferredLanguage: newPreferredLanguage
+                      })
+                    }}
                   >
                     {personalities.map(p => (
                       <option key={p.id} value={p.id}>
@@ -184,6 +208,32 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                     ))}
                   </select>
                 </div>
+
+                {(() => {
+                  const selectedPersonality = personalities.find(p => p.id === aiForm.personality)
+                  const availableLanguages = selectedPersonality?.language?.primary || []
+                  const hasLanguages = availableLanguages.length > 0
+                  
+                  return hasLanguages ? (
+                    <div className="form-group">
+                      <label>Preferred Language</label>
+                      <select
+                        value={aiForm.preferredLanguage || ''}
+                        onChange={(e) => setAIForm({ ...aiForm, preferredLanguage: e.target.value })}
+                      >
+                        <option value="">Auto (use personality's default)</option>
+                        {availableLanguages.map(lang => (
+                          <option key={lang} value={lang}>{lang}</option>
+                        ))}
+                      </select>
+                      {selectedPersonality?.language?.preference && (
+                        <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {selectedPersonality.language.preference}
+                        </small>
+                      )}
+                    </div>
+                  ) : null
+                })()}
 
                 <div className="form-group">
                   <label>AI Name</label>
