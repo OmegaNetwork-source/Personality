@@ -372,9 +372,8 @@ ${cleanedCode}
                 disabled={loading}
               />
               <div className="welcome-input-actions">
-                <button className="input-action-btn" onClick={handleFileUpload} title="Attach file">
-                  <Paperclip size={18} />
-                  <span>Attach</span>
+                <button className="attach-button" onClick={handleFileUpload} title="Attach file">
+                  <Paperclip size={20} />
                 </button>
                 <button className="input-action-btn send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>
                   <Send size={18} />
