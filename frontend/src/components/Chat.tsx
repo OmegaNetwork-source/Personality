@@ -81,7 +81,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
         {messages.length === 0 && (
           <div className="welcome-message">
             <h2>Welcome to AI Personality Platform</h2>
-            <p>Start a conversation with your selected personality!</p>
+            <p>Start a conversation with your AI assistant. Configure your profile and AI personality in Settings.</p>
           </div>
         )}
         {messages.map((msg, idx) => (

@@ -7,7 +7,7 @@ import VideoGen from './components/VideoGen'
 import CodeAssistant from './components/CodeAssistant'
 import Navbar from './components/Navbar'
 import PersonalitySelector from './components/PersonalitySelector'
-import Onboarding from './components/Onboarding'
+import Settings from './components/Settings'
 import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
@@ -17,16 +17,20 @@ function App() {
   const [personalities, setPersonalities] = useState<any[]>([])
   const [userProfile, setUserProfile] = useState<any>(null)
   const [aiProfile, setAIProfile] = useState<any>(null)
-  const [onboardingComplete, setOnboardingComplete] = useState(() => {
-    return localStorage.getItem('onboardingComplete') === 'true'
-  })
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     fetchPersonalities()
     const savedUser = localStorage.getItem('userProfile')
     const savedAI = localStorage.getItem('aiProfile')
+    const savedPersonality = localStorage.getItem('selectedPersonality')
     if (savedUser) setUserProfile(JSON.parse(savedUser))
-    if (savedAI) setAIProfile(JSON.parse(savedAI))
+    if (savedAI) {
+      const ai = JSON.parse(savedAI)
+      setAIProfile(ai)
+      if (ai.personality) setSelectedPersonality(ai.personality)
+    }
+    if (savedPersonality) setSelectedPersonality(savedPersonality)
   }, [])
 
   const fetchPersonalities = async () => {
@@ -39,36 +43,32 @@ function App() {
     }
   }
 
-  const handleOnboardingComplete = (user: any, ai: any) => {
+  const handleSettingsSave = (user: any, ai: any) => {
     setUserProfile(user)
     setAIProfile(ai)
     setSelectedPersonality(ai.personality)
     localStorage.setItem('userProfile', JSON.stringify(user))
     localStorage.setItem('aiProfile', JSON.stringify(ai))
-    localStorage.setItem('onboardingComplete', 'true')
-    setOnboardingComplete(true)
-  }
-
-  if (!onboardingComplete) {
-    return (
-      <ThemeProvider>
-        <Onboarding
-          onComplete={handleOnboardingComplete}
-          personalities={personalities}
-        />
-      </ThemeProvider>
-    )
+    localStorage.setItem('selectedPersonality', ai.personality)
+    setShowSettings(false)
   }
 
   return (
     <ThemeProvider>
       <Router>
         <div className="App">
-          <Navbar userProfile={userProfile} aiProfile={aiProfile} />
+          <Navbar 
+            userProfile={userProfile} 
+            aiProfile={aiProfile}
+            onSettingsClick={() => setShowSettings(true)}
+          />
           <PersonalitySelector
             personalities={personalities}
             selected={selectedPersonality}
-            onSelect={setSelectedPersonality}
+            onSelect={(id) => {
+              setSelectedPersonality(id)
+              localStorage.setItem('selectedPersonality', id)
+            }}
             aiProfile={aiProfile}
           />
           <Routes>
@@ -78,6 +78,15 @@ function App() {
             <Route path="/image" element={<ImageGen />} />
             <Route path="/video" element={<VideoGen />} />
           </Routes>
+          {showSettings && (
+            <Settings
+              userProfile={userProfile}
+              aiProfile={aiProfile}
+              personalities={personalities}
+              onSave={handleSettingsSave}
+              onClose={() => setShowSettings(false)}
+            />
+          )}
         </div>
       </Router>
     </ThemeProvider>
