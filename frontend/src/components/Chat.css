@@ -51,13 +51,17 @@
   font-size: 15px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  transition: all 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.1),
+              0 0 20px rgba(var(--accent-rgb), 0.15);
 }
 
 .welcome-input:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3),
+              0 0 30px rgba(var(--accent-rgb), 0.4),
+              0 0 60px rgba(var(--accent-rgb), 0.2);
 }
 
 .welcome-input-actions {
@@ -318,15 +322,19 @@
   font-size: 15px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  transition: all 0.2s;
+  transition: all 0.3s;
   max-height: 200px;
   resize: none;
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.1),
+              0 0 20px rgba(var(--accent-rgb), 0.15);
 }
 
 .chat-input:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.3),
+              0 0 30px rgba(var(--accent-rgb), 0.4),
+              0 0 60px rgba(var(--accent-rgb), 0.2);
 }
 
 .send-button {

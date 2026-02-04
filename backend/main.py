@@ -614,6 +614,18 @@ async def chat(request: ChatRequest):
                 response["search_results"] = search_results
             if crypto_prices:
                 response["crypto_prices"] = crypto_prices
+            
+            # Generate voice if requested
+            if request.include_voice:
+                try:
+                    message_content = response.get("message", {}).get("content", "")
+                    if message_content:
+                        voice_result = await voice_service.generate_speech(message_content, personality)
+                        response["voice"] = voice_result
+                except Exception as e:
+                    print(f"[WARNING] Voice generation failed: {e}")
+                    # Don't fail the whole request if voice fails
+            
             return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
