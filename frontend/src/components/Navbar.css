@@ -35,7 +35,8 @@
   transition: color 0.3s;
 }
 
-.settings-button {
+.settings-button,
+.watch-mode-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,9 +49,11 @@
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid var(--border-color);
+  text-decoration: none;
 }
 
-.settings-button:hover {
+.settings-button:hover,
+.watch-mode-button:hover {
   background: var(--bg-hover);
   color: var(--accent-color);
 }

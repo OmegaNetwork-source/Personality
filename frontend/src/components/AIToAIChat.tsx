@@ -16,14 +16,14 @@ export default function AIToAIChat({ personalities }: Props) {
   const [loadingFor, setLoadingFor] = useState<'ai1' | 'ai2' | null>(null)
   const [autoContinue, setAutoContinue] = useState(true) // Enabled by default
   const [maxTurns, setMaxTurns] = useState(200) // Limit to prevent infinite loops
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesStartRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToTop = () => {
+    messagesStartRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
-    scrollToBottom()
+    scrollToTop()
   }, [conversation])
 
   // Auto-continue logic - continuously keep the conversation going
@@ -199,76 +199,54 @@ export default function AIToAIChat({ personalities }: Props) {
 
   return (
     <div className="ai-to-ai-container">
-      <div className="ai-to-ai-header">
-        <div className="ai-selectors-compact">
-          <select value={ai1} onChange={(e) => setAI1(e.target.value)} disabled={conversation.length > 0} className="compact-select">
-            <option value="">Choose personality 1...</option>
-            {personalities.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <select value={ai2} onChange={(e) => setAI2(e.target.value)} disabled={conversation.length > 0} className="compact-select">
-            <option value="">Choose personality 2...</option>
-            {personalities.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="ai-to-ai-controls">
-          {conversation.length === 0 ? (
+      {conversation.length === 0 ? (
+        <div className="ai-to-ai-header">
+          <div className="ai-selectors-compact">
+            <select value={ai1} onChange={(e) => setAI1(e.target.value)} className="compact-select">
+              <option value="">Choose personality 1...</option>
+              {personalities.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select value={ai2} onChange={(e) => setAI2(e.target.value)} className="compact-select">
+              <option value="">Choose personality 2...</option>
+              {personalities.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="ai-to-ai-controls">
             <button className="btn-primary btn-start" onClick={startConversation} disabled={loading || !ai1 || !ai2}>
               <Play size={18} />
               Start
             </button>
-          ) : (
-            <>
-              <button className="btn-secondary" onClick={resetConversation}>
-                <RotateCcw size={18} />
-                Reset
-              </button>
-              <button className="btn-primary" onClick={continueConversation} disabled={loading}>
-                <Send size={18} />
-                {loading ? 'Thinking...' : 'Continue'}
-              </button>
-              <label className="auto-continue">
-                <input
-                  type="checkbox"
-                  checked={autoContinue}
-                  onChange={(e) => setAutoContinue(e.target.checked)}
-                />
-                Auto-continue {autoContinue ? '(ON)' : '(OFF)'}
-              </label>
-            </>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="ai-to-ai-controls-bar">
+          <div className="controls-left">
+            <button className="btn-secondary btn-compact" onClick={resetConversation}>
+              <RotateCcw size={18} />
+              Reset
+            </button>
+            <button className="btn-primary btn-compact" onClick={continueConversation} disabled={loading}>
+              <Send size={18} />
+              {loading ? 'Thinking...' : 'Continue'}
+            </button>
+          </div>
+          <label className="auto-continue-compact">
+            <input
+              type="checkbox"
+              checked={autoContinue}
+              onChange={(e) => setAutoContinue(e.target.checked)}
+            />
+            <span>Auto-continue</span>
+          </label>
+        </div>
+      )}
 
       <div className="ai-to-ai-messages">
-        {conversation.length === 0 ? (
-          <div className="empty-state">
-            <Bot size={48} />
-            <p>Select two personalities to watch them converse</p>
-            <p className="hint">Personality 1 will initiate the conversation</p>
-          </div>
-        ) : (
-          conversation.map((msg, idx) => {
-            const isAI1 = msg.role === 'ai1'
-            const name = msg.name || (isAI1 ? ai1Name : ai2Name)
-            return (
-              <div key={idx} className="ai-message-wrapper">
-                <div className={`ai-message ${msg.role}`}>
-                  <div className="ai-message-content-wrapper">
-                    <div className="ai-message-header">
-                      <span className="ai-name">{name}</span>
-                      <span className="ai-badge">{isAI1 ? 'AI 1' : 'AI 2'}</span>
-                    </div>
-                    <div className="ai-message-content">{msg.content}</div>
-                  </div>
-                </div>
-              </div>
-            )
-          })
-        )}
+        <div ref={messagesStartRef} />
         {loading && loadingFor && (
           <div className="ai-message-wrapper">
             <div className={`ai-message ${loadingFor}`}>
@@ -286,7 +264,31 @@ export default function AIToAIChat({ personalities }: Props) {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        {conversation.length === 0 ? (
+          <div className="empty-state">
+            <Bot size={48} />
+            <p>Select two personalities to watch them converse</p>
+            <p className="hint">Personality 1 will initiate the conversation</p>
+          </div>
+        ) : (
+          [...conversation].reverse().map((msg, idx) => {
+            const isAI1 = msg.role === 'ai1'
+            const name = msg.name || (isAI1 ? ai1Name : ai2Name)
+            return (
+              <div key={conversation.length - 1 - idx} className="ai-message-wrapper">
+                <div className={`ai-message ${msg.role}`}>
+                  <div className="ai-message-content-wrapper">
+                    <div className="ai-message-header">
+                      <span className="ai-name">{name}</span>
+                      <span className="ai-badge">{isAI1 ? 'AI 1' : 'AI 2'}</span>
+                    </div>
+                    <div className="ai-message-content">{msg.content}</div>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
     </div>
   )
