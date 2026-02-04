@@ -597,9 +597,9 @@
 
   .chat-welcome-screen {
     padding: 20px 16px;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    padding-top: 60px;
+    padding-top: 0;
   }
 
   .welcome-content {
@@ -721,7 +721,12 @@
   }
 
   .welcome-input-container {
-    gap: 10px;
+    gap: 0;
+    max-width: 100%;
+  }
+
+  .welcome-input {
+    max-width: 100%;
   }
 
   .message {

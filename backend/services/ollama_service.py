@@ -43,14 +43,25 @@ class OllamaService:
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
+            # Debug: Log first 200 chars of system prompt to verify filter removal is present
+            print(f"[OllamaService] System prompt starts with: {system_prompt[:200]}...")
         
         # Add context AFTER system prompt (so system prompt takes priority)
         if context:
-            # Filter out any system messages from context that might override our filter removal
+            # Filter out ANY system messages from context that might override our filter removal
             filtered_context = [msg for msg in context if msg.get("role") != "system"]
+            system_msgs_in_context = [msg for msg in context if msg.get("role") == "system"]
+            if system_msgs_in_context:
+                print(f"[OllamaService] WARNING: Filtered out {len(system_msgs_in_context)} system messages from context to preserve filter removal")
             messages.extend(filtered_context)
         
         messages.append({"role": "user", "content": message})
+        
+        # Debug: Verify system message is first
+        if messages and messages[0].get("role") == "system":
+            print(f"[OllamaService] ✓ System prompt is first message (length: {len(messages[0].get('content', ''))})")
+        else:
+            print(f"[OllamaService] ✗ ERROR: System prompt is NOT first! First message role: {messages[0].get('role') if messages else 'none'}")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
@@ -71,7 +82,14 @@ class OllamaService:
                 }
             )
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            # Debug: Log response to check for filter-related messages
+            response_content = result.get("message", {}).get("content", "") or result.get("response", "")
+            if response_content and ("cannot" in response_content.lower() or "refuse" in response_content.lower() or "not able" in response_content.lower() or "I cannot" in response_content):
+                print(f"[OllamaService] ⚠️ WARNING: Response may contain filter refusal: {response_content[:200]}...")
+            
+            return result
     
     async def chat_stream(
         self,

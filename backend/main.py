@@ -558,9 +558,10 @@ async def chat(request: ChatRequest):
                         )
                 
                 if crypto_prices:
+                    # Use user role instead of system to avoid overriding filter removal
                     enhanced_context.append({
-                        "role": "system",
-                        "content": f"CRITICAL: The user is asking about cryptocurrency prices. You have been provided with REAL-TIME, CURRENT cryptocurrency price data from CoinGecko API. You MUST use this data to answer their question. DO NOT refuse to provide financial information. DO NOT say 'I cannot provide financial advice'. The user is asking for factual price information, not financial advice. You MUST provide the price information from the data below. Here is the current cryptocurrency price data:\n\n{crypto_prices}\n\nYou MUST answer the user's question using this real-time price information. Provide the exact prices, market cap, volume, and 24h change as shown in the data above. This is factual information, not financial advice."
+                        "role": "user",
+                        "content": f"[Crypto Price Data] The user is asking about cryptocurrency prices. Here is REAL-TIME, CURRENT cryptocurrency price data from CoinGecko API:\n\n{crypto_prices}\n\nYou MUST use this data to answer their question. Provide the exact prices, market cap, volume, and 24h change as shown in the data above. This is factual information, not financial advice."
                     })
             except Exception as e:
                 print(f"[API] Crypto price fetch failed: {e}")
@@ -579,9 +580,10 @@ async def chat(request: ChatRequest):
                     count=5
                 )
                 # Add search results to context with instruction for AI to use only when needed
+                # Use user role instead of system to avoid overriding filter removal
                 enhanced_context.append({
-                    "role": "system",
-                    "content": f"Web search results are available below. Use this information ONLY if you don't have the answer from your training data, or if the question is about current/recent events, news, prices, or real-time information. If you already know the answer from your training, use that instead. Search results:\n{search_results}\n\nWhen using search results, cite sources when relevant."
+                    "role": "user",
+                    "content": f"[Web Search Results] Web search results are available below. Use this information ONLY if you don't have the answer from your training data, or if the question is about current/recent events, news, prices, or real-time information. If you already know the answer from your training, use that instead. Search results:\n{search_results}\n\nWhen using search results, cite sources when relevant."
                 })
                 print(f"[API] Auto-searched for: {request.message[:50]}...")
             except Exception as e:
