@@ -203,22 +203,22 @@ export default function AIToAIChat({ personalities }: Props) {
       <div className="ai-to-ai-header">
         <h2>
           <Bot size={24} />
-          AI-to-AI Chat
+          Watch Mode
         </h2>
         <div className="ai-selectors">
           <div className="ai-selector">
-            <label>AI 1 (Initiates)</label>
+            <label>Personality 1</label>
             <select value={ai1} onChange={(e) => setAI1(e.target.value)} disabled={conversation.length > 0}>
-              <option value="">Select AI 1</option>
+              <option value="">Choose personality...</option>
               {personalities.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>
           <div className="ai-selector">
-            <label>AI 2</label>
+            <label>Personality 2</label>
             <select value={ai2} onChange={(e) => setAI2(e.target.value)} disabled={conversation.length > 0}>
-              <option value="">Select AI 2</option>
+              <option value="">Choose personality...</option>
               {personalities.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -258,8 +258,8 @@ export default function AIToAIChat({ personalities }: Props) {
         {conversation.length === 0 ? (
           <div className="empty-state">
             <Bot size={48} />
-            <p>Select two AI personalities and click "Start Conversation"</p>
-            <p className="hint">AI 1 will initiate the conversation</p>
+            <p>Select two personalities to watch them converse</p>
+            <p className="hint">Personality 1 will initiate the conversation</p>
           </div>
         ) : (
           conversation.map((msg, idx) => {

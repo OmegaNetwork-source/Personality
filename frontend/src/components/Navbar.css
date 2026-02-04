@@ -39,15 +39,17 @@
   border: none;
   border-radius: 8px;
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid var(--border-color);
+  font-size: 18px;
 }
 
 .settings-button:hover {
   background: var(--bg-hover);
-  color: var(--accent-color);
+  color: var(--text-primary);
+  opacity: 0.8;
 }
 
 .nav-links {
