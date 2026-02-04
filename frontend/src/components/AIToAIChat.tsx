@@ -14,7 +14,8 @@ export default function AIToAIChat({ personalities }: Props) {
   const [conversation, setConversation] = useState<Array<{ role: string; content: string; name?: string }>>([])
   const [loading, setLoading] = useState(false)
   const [loadingFor, setLoadingFor] = useState<'ai1' | 'ai2' | null>(null)
-  const [autoContinue, setAutoContinue] = useState(false)
+  const [autoContinue, setAutoContinue] = useState(true) // Enabled by default
+  const [maxTurns, setMaxTurns] = useState(20) // Limit to prevent infinite loops
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -25,23 +26,30 @@ export default function AIToAIChat({ personalities }: Props) {
     scrollToBottom()
   }, [conversation])
 
-  // Auto-continue logic
+  // Auto-continue logic - continuously keep the conversation going
   useEffect(() => {
     if (!autoContinue || loading || conversation.length === 0) return
     
     const lastMessage = conversation[conversation.length - 1]
+    const turnCount = conversation.filter(m => m.role === 'ai1' || m.role === 'ai2').length
+    
     // Only auto-continue if we have at least 2 messages (both AIs have spoken once)
-    // This prevents infinite loops
-    if (conversation.length >= 2 && (lastMessage.role === 'ai1' || lastMessage.role === 'ai2')) {
+    // And if we haven't exceeded max turns
+    if (conversation.length >= 2 && turnCount < maxTurns && (lastMessage.role === 'ai1' || lastMessage.role === 'ai2')) {
       const timer = setTimeout(() => {
-        if (!loading) {
+        // Double-check we're not loading and auto-continue is still enabled
+        if (!loading && autoContinue) {
+          console.log(`🔄 Auto-continuing conversation... (turn ${turnCount}/${maxTurns})`)
           continueConversation()
         }
       }, 1500) // Wait 1.5 seconds before continuing
       return () => clearTimeout(timer)
+    } else if (turnCount >= maxTurns) {
+      console.log('⏹️ Reached max turns, stopping auto-continue')
+      setAutoContinue(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.length, autoContinue, loading])
+  }, [conversation.length, autoContinue, loading, maxTurns])
 
   const startConversation = async () => {
     if (!ai1 || !ai2) {
@@ -54,6 +62,8 @@ export default function AIToAIChat({ personalities }: Props) {
       return
     }
 
+    // Enable auto-continue by default
+    setAutoContinue(true)
     setLoading(true)
     setLoadingFor('ai1')
     setConversation([])
@@ -68,12 +78,12 @@ export default function AIToAIChat({ personalities }: Props) {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({
-          personality1: ai1,
-          personality2: ai2,
-          conversation: [],
-          max_turns: 10
-        })
+          body: JSON.stringify({
+            personality1: ai1,
+            personality2: ai2,
+            conversation: [],
+            max_turns: maxTurns
+          })
       })
 
       if (!response1.ok) {
@@ -101,7 +111,7 @@ export default function AIToAIChat({ personalities }: Props) {
             personality1: ai1,
             personality2: ai2,
             conversation: data1.conversation,
-            max_turns: 10
+            max_turns: maxTurns
           })
         })
 
@@ -115,6 +125,7 @@ export default function AIToAIChat({ personalities }: Props) {
         
         if (data2.conversation && Array.isArray(data2.conversation)) {
           setConversation(data2.conversation)
+          // Auto-continue will trigger via useEffect after this state update
         }
       } else {
         console.error('❌ Invalid conversation data:', data1)
@@ -152,7 +163,7 @@ export default function AIToAIChat({ personalities }: Props) {
           personality1: ai1,
           personality2: ai2,
           conversation: conversation,
-          max_turns: 10
+          max_turns: maxTurns
         })
       })
 
@@ -236,7 +247,7 @@ export default function AIToAIChat({ personalities }: Props) {
                   checked={autoContinue}
                   onChange={(e) => setAutoContinue(e.target.checked)}
                 />
-                Auto-continue
+                Auto-continue {autoContinue ? '(ON)' : '(OFF)'}
               </label>
             </>
           )}
