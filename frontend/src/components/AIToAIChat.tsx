@@ -200,35 +200,25 @@ export default function AIToAIChat({ personalities }: Props) {
   return (
     <div className="ai-to-ai-container">
       <div className="ai-to-ai-header">
-        <h2>
-          <Bot size={24} />
-          Watch Mode
-        </h2>
-        <div className="ai-selectors">
-          <div className="ai-selector">
-            <label>Personality 1</label>
-            <select value={ai1} onChange={(e) => setAI1(e.target.value)} disabled={conversation.length > 0}>
-              <option value="">Choose personality...</option>
-              {personalities.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="ai-selector">
-            <label>Personality 2</label>
-            <select value={ai2} onChange={(e) => setAI2(e.target.value)} disabled={conversation.length > 0}>
-              <option value="">Choose personality...</option>
-              {personalities.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="ai-selectors-compact">
+          <select value={ai1} onChange={(e) => setAI1(e.target.value)} disabled={conversation.length > 0} className="compact-select">
+            <option value="">Choose personality 1...</option>
+            {personalities.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <select value={ai2} onChange={(e) => setAI2(e.target.value)} disabled={conversation.length > 0} className="compact-select">
+            <option value="">Choose personality 2...</option>
+            {personalities.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </div>
         <div className="ai-to-ai-controls">
           {conversation.length === 0 ? (
-            <button className="btn-primary" onClick={startConversation} disabled={loading || !ai1 || !ai2}>
+            <button className="btn-primary btn-start" onClick={startConversation} disabled={loading || !ai1 || !ai2}>
               <Play size={18} />
-              Start Conversation
+              Start
             </button>
           ) : (
             <>

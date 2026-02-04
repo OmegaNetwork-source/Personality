@@ -20,6 +20,11 @@
 }
 
 .nav-logo {
+  margin-left: -20px;
+  padding-left: 20px;
+}
+
+.nav-logo {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -39,17 +44,15 @@
   border: none;
   border-radius: 8px;
   background: var(--bg-primary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid var(--border-color);
-  font-size: 18px;
 }
 
 .settings-button:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
-  opacity: 0.8;
+  color: var(--accent-color);
 }
 
 .nav-links {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Bot } from 'lucide-react'
+import { Moon, Sun, Bot, Settings } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import './Navbar.css'
 
@@ -21,10 +21,10 @@ export default function Navbar({ userProfile, aiProfile, onSettingsClick }: Prop
         </Link>
         <div className="nav-links">
           <Link to="/ai-to-ai" className="nav-link">
-            Watch Mode
+            👀 Watch Mode
           </Link>
           <button className="settings-button" onClick={onSettingsClick} title="Settings">
-            👀
+            <Settings size={20} />
           </button>
           <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
