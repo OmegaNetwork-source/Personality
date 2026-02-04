@@ -1,0 +1,159 @@
+.image-gen {
+  max-width: 1200px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.image-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.image-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.image-header h2 {
+  color: #333;
+}
+
+.no-filters-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.image-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-weight: 600;
+  color: #333;
+}
+
+.prompt-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.size-controls {
+  display: flex;
+  gap: 16px;
+}
+
+.size-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.size-input label {
+  font-weight: 600;
+  color: #333;
+}
+
+.size-input input {
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.size-input input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.generate-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.generate-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.generate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-result {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.result-header h3 {
+  color: #333;
+}
+
+.download-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.download-button:hover {
+  background: #45a049;
+}
+
+.generated-image {
+  width: 100%;
+  max-width: 1024px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

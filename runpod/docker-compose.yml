@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
+  stable-diffusion:
+    image: ghcr.io/runpod/stable-diffusion:latest
+    container_name: stable-diffusion-service
+    ports:
+      - "7860:7860"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - CLI_ARGS=--api --listen 0.0.0.0
+
+  video-generation:
+    image: ghcr.io/runpod/stable-video-diffusion:latest
+    container_name: video-gen-service
+    ports:
+      - "7861:7860"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - CLI_ARGS=--api --listen 0.0.0.0
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: backend-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - STABLE_DIFFUSION_URL=http://stable-diffusion:7860
+      - VIDEO_GEN_URL=http://video-generation:7860
+    depends_on:
+      - ollama
+      - stable-diffusion
+      - video-generation
+
+volumes:
+  ollama-data:
