@@ -197,6 +197,19 @@ export default function AIToAIChat({ personalities }: Props) {
   const ai1Name = personalities.find(p => p.id === ai1)?.name || 'AI 1'
   const ai2Name = personalities.find(p => p.id === ai2)?.name || 'AI 2'
 
+  // Group personalities by category
+  const groupedPersonalities = personalities.reduce((acc, personality) => {
+    const category = personality.category || 'Standard AI'
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    acc[category].push(personality)
+    return acc
+  }, {} as Record<string, typeof personalities>)
+
+  // Define category order
+  const categoryOrder = ['Funny', 'Ethnic', 'Standard AI']
+
   return (
     <div className="ai-to-ai-container">
       {conversation.length === 0 ? (
@@ -204,15 +217,31 @@ export default function AIToAIChat({ personalities }: Props) {
           <div className="ai-selectors-compact">
             <select value={ai1} onChange={(e) => setAI1(e.target.value)} className="compact-select">
               <option value="">Choose personality 1...</option>
-              {personalities.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              {categoryOrder.map(category => {
+                const categoryPersonalities = groupedPersonalities[category] || []
+                if (categoryPersonalities.length === 0) return null
+                return (
+                  <optgroup key={category} label={category}>
+                    {categoryPersonalities.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                )
+              })}
             </select>
             <select value={ai2} onChange={(e) => setAI2(e.target.value)} className="compact-select">
               <option value="">Choose personality 2...</option>
-              {personalities.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              {categoryOrder.map(category => {
+                const categoryPersonalities = groupedPersonalities[category] || []
+                if (categoryPersonalities.length === 0) return null
+                return (
+                  <optgroup key={category} label={category}>
+                    {categoryPersonalities.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                )
+              })}
             </select>
           </div>
           <div className="ai-to-ai-controls">

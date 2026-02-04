@@ -71,6 +71,19 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
   const availableLanguages = selectedPersonality?.language?.primary || []
   const hasLanguages = availableLanguages.length > 0
 
+  // Group personalities by category
+  const groupedPersonalities = personalities.reduce((acc, personality) => {
+    const category = personality.category || 'Standard AI'
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    acc[category].push(personality)
+    return acc
+  }, {} as Record<string, typeof personalities>)
+
+  // Define category order
+  const categoryOrder = ['Funny', 'Ethnic', 'Standard AI']
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
@@ -135,11 +148,19 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                   ) : (
                     <>
                       <option value="">Select a personality</option>
-                      {personalities.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} - {p.description}
-                        </option>
-                      ))}
+                      {categoryOrder.map(category => {
+                        const categoryPersonalities = groupedPersonalities[category] || []
+                        if (categoryPersonalities.length === 0) return null
+                        return (
+                          <optgroup key={category} label={category}>
+                            {categoryPersonalities.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} - {p.description}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      })}
                     </>
                   )}
                 </select>
