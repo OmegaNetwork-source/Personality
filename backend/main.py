@@ -18,6 +18,7 @@ from services.ollama_service import OllamaService
 from services.image_service import ImageService
 from services.video_service import VideoService
 from services.personality_service import PersonalityService
+from services.voice_service import VoiceService
 from services.brave_service import BraveService
 from services.coingecko_service import CoinGeckoService
 
@@ -48,6 +49,7 @@ ollama_service = OllamaService()
 image_service = ImageService()
 video_service = VideoService()
 personality_service = PersonalityService()
+voice_service = VoiceService()
 brave_service = BraveService()
 coingecko_service = CoinGeckoService()
 
@@ -91,6 +93,11 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = False
     user_profile: Optional[Dict[str, Any]] = None
     ai_profile: Optional[Dict[str, Any]] = None
+    include_voice: Optional[bool] = False
+
+class VoiceRequest(BaseModel):
+    text: str
+    personality: Optional[str] = "default"
 
 class AIToAIChatRequest(BaseModel):
     personality1: str
@@ -127,13 +134,14 @@ class VideoRequest(BaseModel):
 async def root():
     return {
         "status": "online",
-        "services": {
-            "ollama": await ollama_service.check_health(),
-            "image": await image_service.check_health(),
-            "video": await video_service.check_health(),
-            "brave": await brave_service.check_health(),
-            "coingecko": await coingecko_service.check_health()
-        }
+            "services": {
+                "ollama": await ollama_service.check_health(),
+                "image": await image_service.check_health(),
+                "video": await video_service.check_health(),
+                "voice": await voice_service.check_health(),
+                "brave": await brave_service.check_health(),
+                "coingecko": await coingecko_service.check_health()
+            }
     }
 
 # Personality Endpoints
@@ -349,6 +357,17 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Voice/TTS Endpoint
+@app.post("/api/voice")
+async def generate_voice(request: VoiceRequest):
+    """Generate speech from text with personality-specific voice"""
+    try:
+        personality = personality_service.get_personality(request.personality)
+        result = await voice_service.generate_speech(request.text, personality)
+        return result
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Web Search Endpoint
