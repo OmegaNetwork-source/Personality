@@ -202,11 +202,7 @@
   flex-shrink: 0;
 }
 
-.message-wrapper:hover .play-button,
-.message-wrapper:hover .copy-button {
-  opacity: 1;
-}
-
+.play-button:hover,
 .copy-button:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
