@@ -190,6 +190,7 @@
   margin-top: -4px;
 }
 
+.message-wrapper:hover .play-button,
 .message-wrapper:hover .copy-button {
   opacity: 1;
 }
@@ -199,10 +200,12 @@
   color: var(--text-primary);
 }
 
+.message.user .play-button,
 .message.user .copy-button {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.message.user .play-button:hover,
 .message.user .copy-button:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;

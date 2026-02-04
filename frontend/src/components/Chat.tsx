@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Copy, Check, Eye } from 'lucide-react'
+import { Send, Paperclip, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
 import './Chat.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
@@ -15,6 +15,8 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null)
+  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -57,6 +59,77 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
       setTimeout(() => setCopiedIndex(null), 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
+    }
+  }
+
+  const handlePlayAudio = async (content: string, index: number) => {
+    // Stop any currently playing audio
+    if (audioRef) {
+      audioRef.pause()
+      audioRef.currentTime = 0
+      setAudioRef(null)
+    }
+
+    if (playingIndex === index) {
+      // If clicking the same message, stop playing
+      setPlayingIndex(null)
+      return
+    }
+
+    setPlayingIndex(index)
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+      
+      // Call voice API
+      const response = await fetch(`${API_URL}/api/voice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          text: content,
+          personality: personality
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate voice')
+      }
+
+      const data = await response.json()
+      
+      // Decode base64 audio
+      const audioData = atob(data.audio)
+      const audioArray = new Uint8Array(audioData.length)
+      for (let i = 0; i < audioData.length; i++) {
+        audioArray[i] = audioData.charCodeAt(i)
+      }
+      
+      // Create audio blob and play
+      const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' })
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      
+      audio.onended = () => {
+        setPlayingIndex(null)
+        setAudioRef(null)
+        URL.revokeObjectURL(audioUrl)
+      }
+      
+      audio.onerror = () => {
+        setPlayingIndex(null)
+        setAudioRef(null)
+        URL.revokeObjectURL(audioUrl)
+      }
+      
+      setAudioRef(audio)
+      await audio.play()
+    } catch (error) {
+      console.error('Failed to play audio:', error)
+      setPlayingIndex(null)
+      alert('Failed to play audio. Make sure the backend is running and OpenAI API key is configured.')
     }
   }
 
@@ -273,17 +346,32 @@ ${code}
                     ) : (
                       <div className="message-content">{msg.content}</div>
                     )}
-                    <button 
-                      className="copy-button"
-                      onClick={() => handleCopy(msg.content, idx)}
-                      title="Copy message"
-                    >
-                      {copiedIndex === idx ? (
-                        <Check size={16} />
-                      ) : (
-                        <Copy size={16} />
+                    <div className="message-actions">
+                      {msg.role === 'assistant' && (
+                        <button 
+                          className="play-button"
+                          onClick={() => handlePlayAudio(msg.content, idx)}
+                          title="Play message"
+                        >
+                          {playingIndex === idx ? (
+                            <VolumeX size={16} />
+                          ) : (
+                            <Volume2 size={16} />
+                          )}
+                        </button>
                       )}
-                    </button>
+                      <button 
+                        className="copy-button"
+                        onClick={() => handleCopy(msg.content, idx)}
+                        title="Copy message"
+                      >
+                        {copiedIndex === idx ? (
+                          <Check size={16} />
+                        ) : (
+                          <Copy size={16} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
