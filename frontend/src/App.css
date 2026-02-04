@@ -17,6 +17,41 @@
   padding: 20px;
 }
 
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .content {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .button {
+    padding: 14px 20px;
+    font-size: 15px;
+    min-height: 44px; /* Touch target */
+  }
+
+  .input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 8px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+}
+
 .card {
   background: var(--bg-secondary);
   border-radius: 12px;

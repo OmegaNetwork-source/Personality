@@ -569,8 +569,80 @@
   background: white;
 }
 
-/* Responsive adjustments */
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
+  .chat-container {
+    height: calc(100vh - 60px);
+  }
+
+  .welcome-title {
+    font-size: 28px;
+    padding: 0 20px;
+  }
+
+  .welcome-input-container {
+    padding: 0 16px;
+  }
+
+  .welcome-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px 16px;
+  }
+
+  .welcome-input-actions {
+    position: static;
+    margin-top: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .input-action-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-height: 44px; /* Touch target size */
+  }
+
+  .message {
+    padding: 0 16px;
+    max-width: 100%;
+  }
+
+  .message-content-wrapper {
+    max-width: 90%;
+  }
+
+  .message-content {
+    font-size: 15px;
+    padding: 10px 14px;
+    line-height: 1.5;
+  }
+
+  .chat-input-container {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .chat-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px 14px;
+    max-width: 100%;
+  }
+
+  .attach-button,
+  .send-button {
+    width: 44px; /* Larger touch target */
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .copy-button {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
   .preview-modal {
     max-width: 95vw;
     height: 95vh;
@@ -585,5 +657,57 @@
   .preview-button {
     padding: 5px 10px;
     font-size: 12px;
+    min-height: 44px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .welcome-title {
+    font-size: 24px;
+  }
+
+  .message {
+    padding: 0 12px;
+  }
+
+  .message-content-wrapper {
+    max-width: 95%;
+  }
+
+  .chat-input-container {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .attach-button,
+  .send-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .input-action-btn span {
+    display: none; /* Hide text, show only icons on very small screens */
+  }
+
+  .input-action-btn {
+    width: 44px;
+    padding: 10px;
+    justify-content: center;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .chat-container {
+    height: calc(100vh - 50px);
+  }
+
+  .welcome-content {
+    gap: 20px;
+  }
+
+  .welcome-title {
+    font-size: 24px;
   }
 }

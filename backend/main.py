@@ -514,15 +514,19 @@ async def chat(request: ChatRequest):
                 if coin_id not in detected_coins:
                     detected_coins.append(coin_id)
         
+        print(f"[API] Crypto detection - Message: '{request.message}', Detected coins: {detected_coins}, Message lower: '{message_lower}'")
+        
         # If crypto keywords detected, fetch prices
         if detected_coins or any(kw in message_lower for kw in ["crypto", "cryptocurrency", "price"]):
             try:
                 if detected_coins:
+                    print(f"[API] Fetching crypto prices for: {detected_coins}")
                     # Fetch prices for detected coins
                     crypto_prices = await coingecko_service.get_price_and_format(
                         coin_ids=detected_coins[:5],  # Limit to 5 coins
                         vs_currencies=["usd"]
                     )
+                    print(f"[API] Crypto prices fetched successfully, length: {len(crypto_prices) if crypto_prices else 0}")
                 elif "trending" in message_lower or "popular" in message_lower:
                     # Get trending coins
                     trending = await coingecko_service.get_trending_coins()
@@ -536,7 +540,7 @@ async def chat(request: ChatRequest):
                 if crypto_prices:
                     enhanced_context.append({
                         "role": "system",
-                        "content": f"Current cryptocurrency price data:\n{crypto_prices}\n\nUse this real-time price information to answer the user's question accurately."
+                        "content": f"CRITICAL: The user is asking about cryptocurrency prices. You have been provided with REAL-TIME, CURRENT cryptocurrency price data from CoinGecko API. You MUST use this data to answer their question. DO NOT refuse to provide financial information. DO NOT say 'I cannot provide financial advice'. The user is asking for factual price information, not financial advice. You MUST provide the price information from the data below. Here is the current cryptocurrency price data:\n\n{crypto_prices}\n\nYou MUST answer the user's question using this real-time price information. Provide the exact prices, market cap, volume, and 24h change as shown in the data above. This is factual information, not financial advice."
                     })
             except Exception as e:
                 print(f"[API] Crypto price fetch failed: {e}")

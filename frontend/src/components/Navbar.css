@@ -116,3 +116,49 @@
   background: var(--bg-hover);
   color: var(--accent-color);
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 12px 0;
+  }
+
+  .nav-container {
+    padding: 0 16px;
+  }
+
+  .nav-logo {
+    font-size: 18px;
+    gap: 8px;
+    margin-left: -16px;
+    padding-left: 16px;
+  }
+
+  .nav-links {
+    gap: 8px;
+  }
+
+  .settings-button,
+  .watch-mode-button,
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-logo {
+    font-size: 16px;
+  }
+
+  .nav-container {
+    padding: 0 12px;
+  }
+
+  .nav-logo {
+    margin-left: -12px;
+    padding-left: 12px;
+  }
+}
