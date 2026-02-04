@@ -489,20 +489,21 @@ async def chat(request: ChatRequest):
         personality = personality_service.get_personality(request.personality)
         
         # Build enhanced context with user and AI profiles
+        # NOTE: These are added as user messages, NOT system messages, to avoid overriding filter removal
         enhanced_context = request.context or []
         if request.user_profile:
-            enhanced_context.insert(0, {
-                "role": "system",
-                "content": f"User profile: {request.user_profile.get('name', 'User')} is {request.user_profile.get('ethnicity', '')} {request.user_profile.get('gender', '')}. {request.user_profile.get('interests', '')} {request.user_profile.get('background', '')}"
+            enhanced_context.append({
+                "role": "user",
+                "content": f"[User Context] User profile: {request.user_profile.get('name', 'User')} is {request.user_profile.get('ethnicity', '')} {request.user_profile.get('gender', '')}. {request.user_profile.get('interests', '')} {request.user_profile.get('background', '')}"
             })
         if request.ai_profile:
-            ai_info = f"AI profile: {request.ai_profile.get('name', 'AI Assistant')} is {request.ai_profile.get('ethnicity', '')} {request.ai_profile.get('gender', '')}"
+            ai_info = f"[AI Context] AI profile: {request.ai_profile.get('name', 'AI Assistant')} is {request.ai_profile.get('ethnicity', '')} {request.ai_profile.get('gender', '')}"
             if request.ai_profile.get('traits'):
                 ai_info += f". Traits: {', '.join(request.ai_profile.get('traits', []))}"
             if request.ai_profile.get('preferredLanguage'):
                 ai_info += f". Preferred language: {request.ai_profile.get('preferredLanguage')}"
-            enhanced_context.insert(0, {
-                "role": "system",
+            enhanced_context.append({
+                "role": "user",
                 "content": ai_info
             })
         

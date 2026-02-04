@@ -364,6 +364,10 @@ ${cleanedCode}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onFocus={() => {
+                  // On mobile, when user focuses input, it transitions to chat view
+                  // The input will remain focused and ready for typing
+                }}
                 placeholder="Ask anything"
                 disabled={loading}
               />

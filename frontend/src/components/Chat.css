@@ -619,24 +619,24 @@
   .welcome-input-container {
     padding: 0;
     width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
+    align-items: center;
   }
 
   .welcome-input {
     font-size: 16px; /* Prevents zoom on iOS */
     padding: 14px 16px;
     width: 100%;
+    max-width: 500px;
     box-sizing: border-box;
+    text-align: center;
   }
 
   .welcome-input-actions {
-    position: static;
-    margin-top: 0;
-    width: 100%;
-    justify-content: center;
-    display: flex;
-    gap: 12px;
+    display: none !important; /* Hide buttons on mobile */
   }
 
   .input-action-btn {
