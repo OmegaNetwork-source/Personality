@@ -77,7 +77,10 @@ class ImageService:
                     return await self._generate_comfyui(prompt, negative_prompt, width, height, steps, guidance_scale, seed)
         
         except Exception as e:
-            raise Exception(f"Image generation failed: {str(e)}")
+            error_msg = str(e)
+            print(f"[ImageService] Error: {error_msg}")
+            print(f"[ImageService] Base URL: {self.base_url}")
+            raise Exception(f"Image generation failed: {error_msg}. Make sure Stable Diffusion is running at {self.base_url}")
     
     async def _generate_comfyui(
         self,

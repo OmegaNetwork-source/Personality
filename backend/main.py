@@ -374,6 +374,14 @@ async def refactor_code(request: CodeRequest):
 async def generate_image(request: ImageRequest):
     """Generate image from text prompt (no filters)"""
     try:
+        # Check if service is available
+        is_healthy = await image_service.check_health()
+        if not is_healthy:
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Image generation service is not available. Make sure Stable Diffusion is running at {image_service.base_url}"
+            )
+        
         result = await image_service.generate(
             prompt=request.prompt,
             negative_prompt=request.negative_prompt,
@@ -384,7 +392,10 @@ async def generate_image(request: ImageRequest):
             seed=request.seed
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[API] Image generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Video Generation

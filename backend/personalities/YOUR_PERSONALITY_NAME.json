@@ -1,0 +1,38 @@
+{
+  "id": "your_personality_id",
+  "name": "Your Personality Name",
+  "description": "Brief description of what this personality is like",
+  "system_prompt": "This is the most important field. Write a detailed description of how this personality behaves, speaks, thinks, and interacts. Include their personality traits, communication style, beliefs, goals, quirks, and how they would respond in conversations. Be very specific and detailed.",
+  "traits": [
+    "trait1",
+    "trait2",
+    "trait3"
+  ],
+  "language": {
+    "primary": ["English"],
+    "preference": "Describe their speaking style - formal, casual, uses slang, technical terms, etc.",
+    "code_switching": false
+  },
+  "region": "Geographic or cultural region",
+  "cultural_context": {
+    "values": [
+      "value1",
+      "value2"
+    ],
+    "traditions": [
+      "tradition1",
+      "tradition2"
+    ],
+    "communication_style": "How they communicate - tone, formality, directness, humor, etc.",
+    "greeting_style": "How they greet people",
+    "cultural_references": [
+      "reference1",
+      "reference2"
+    ],
+    "emoji_usage": "How they use emojis"
+  },
+  "examples": {
+    "greeting": "Example greeting",
+    "response_style": "Example response"
+  }
+}

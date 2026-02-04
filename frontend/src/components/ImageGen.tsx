@@ -20,7 +20,10 @@ export default function ImageGen() {
       const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
       const response = await fetch(`${API_URL}/api/image/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
         body: JSON.stringify({
           prompt,
           negative_prompt: negativePrompt,
@@ -29,12 +32,22 @@ export default function ImageGen() {
         })
       })
 
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
       const data = await response.json()
+      console.log('Image generation response:', data)
+      
       if (data.image) {
         setGeneratedImage(`data:image/png;base64,${data.image}`)
+      } else {
+        throw new Error('No image in response. Check if Stable Diffusion is running.')
       }
-    } catch (error) {
-      alert('Error generating image. Make sure the backend and image service are running.')
+    } catch (error: any) {
+      console.error('Image generation error:', error)
+      alert(`Error generating image: ${error.message || 'Make sure the backend and Stable Diffusion service are running.'}`)
     } finally {
       setLoading(false)
     }

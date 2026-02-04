@@ -47,7 +47,10 @@ class VideoService:
                 raise ValueError("Either prompt or image_url must be provided")
         
         except Exception as e:
-            raise Exception(f"Video generation failed: {str(e)}")
+            error_msg = str(e)
+            print(f"[VideoService] Error: {error_msg}")
+            print(f"[VideoService] Base URL: {self.base_url}")
+            raise Exception(f"Video generation failed: {error_msg}. Make sure ComfyUI is running at {self.base_url}")
     
     async def generate_from_image(
         self,

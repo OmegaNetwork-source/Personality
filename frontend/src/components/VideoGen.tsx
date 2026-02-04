@@ -22,7 +22,10 @@ export default function VideoGen() {
       if (mode === 'text' && prompt.trim()) {
         response = await fetch(`${API_URL}/api/video/generate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify({
             prompt,
             duration
@@ -35,6 +38,9 @@ export default function VideoGen() {
 
         response = await fetch(`${API_URL}/api/video/generate-from-image`, {
           method: 'POST',
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          },
           body: formData
         })
       } else {
@@ -43,12 +49,22 @@ export default function VideoGen() {
         return
       }
 
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
       const data = await response.json()
+      console.log('Video generation response:', data)
+      
       if (data.video) {
         setGeneratedVideo(`data:video/mp4;base64,${data.video}`)
+      } else {
+        throw new Error('No video in response. Check if ComfyUI video service is running.')
       }
-    } catch (error) {
-      alert('Error generating video. Make sure the backend and video service are running.')
+    } catch (error: any) {
+      console.error('Video generation error:', error)
+      alert(`Error generating video: ${error.message || 'Make sure the backend and video generation service are running.'}`)
     } finally {
       setLoading(false)
     }

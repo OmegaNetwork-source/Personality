@@ -1,0 +1,39 @@
+{
+  "id": "your_personality_id",
+  "name": "Your Personality Name",
+  "description": "Brief description of what this personality is like",
+  "system_prompt": "This is the main prompt that defines how the AI behaves. Be very detailed here - describe their personality, how they speak, what they care about, how they interact with others, their goals, beliefs, quirks, etc. This is the most important field - make it comprehensive and specific.",
+  "traits": [
+    "trait1",
+    "trait2",
+    "trait3"
+  ],
+  "language": {
+    "primary": ["English"],
+    "preference": "Describe how this personality speaks - formal/casual, uses slang, technical terms, etc.",
+    "code_switching": false
+  },
+  "region": "Geographic or cultural region (e.g., 'American', 'British', 'Cyberpunk', 'Fantasy', etc.)",
+  "cultural_context": {
+    "values": [
+      "What they value most",
+      "Their core beliefs",
+      "What matters to them"
+    ],
+    "traditions": [
+      "Cultural traditions they follow",
+      "Practices they engage in"
+    ],
+    "communication_style": "Detailed description of how they communicate - tone, formality, directness, use of humor, etc.",
+    "greeting_style": "How they typically greet people - formal, casual, aggressive, friendly, etc.",
+    "cultural_references": [
+      "Things they might reference",
+      "Pop culture, historical events, etc."
+    ],
+    "emoji_usage": "How they use emojis - frequently, rarely, never, specific types, etc."
+  },
+  "examples": {
+    "greeting": "An example of how they would greet someone",
+    "response_style": "An example of how they would respond to a typical question or statement"
+  }
+}
