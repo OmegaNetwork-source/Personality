@@ -31,9 +31,23 @@
 }
 
 .settings-button {
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: none;
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border-color);
+}
+
+.settings-button:hover {
+  background: var(--bg-hover);
+  color: var(--accent-color);
 }
 
 .nav-links {
