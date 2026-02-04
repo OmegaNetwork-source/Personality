@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-/* Welcome Screen (ChatGPT style) */
+/* Welcome Screen (ChatGPT style) - v2.0 mobile fix */
 .chat-welcome-screen {
   flex: 1;
   display: flex;
