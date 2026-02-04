@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Bot, Save, X, Globe, Edit3 } from 'lucide-react'
+import { Settings as SettingsIcon, Bot, Save, X, Globe, Edit3, MessageCircle, CheckCircle, XCircle, ExternalLink } from 'lucide-react'
 import PersonalityEditor from './PersonalityEditor'
 import './Settings.css'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface AIProfile {
   personality: string
@@ -84,6 +86,236 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
   // Define category order
   const categoryOrder = ['Funny', 'Ethnic', 'Standard AI']
 
+  // Bot Configuration Component
+  function BotConfiguration() {
+    const [botStatus, setBotStatus] = useState<any>(null)
+    const [loading, setLoading] = useState(false)
+    const [tokens, setTokens] = useState({
+      discord: '',
+      telegram: '',
+      whatsapp: ''
+    })
+    
+    const userId = userProfile?.id || `user_${Date.now()}`
+    
+    useEffect(() => {
+      fetchBotStatus()
+    }, [])
+    
+    const fetchBotStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/bots/status/${userId}`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
+        const data = await response.json()
+        setBotStatus(data)
+      } catch (error) {
+        console.error('Failed to fetch bot status:', error)
+      }
+    }
+    
+    const handleConnect = async (botType: string) => {
+      setLoading(true)
+      try {
+        const token = tokens[botType as keyof typeof tokens]
+        if (!token) {
+          alert('Please enter a token')
+          return
+        }
+        
+        const response = await fetch(`${API_URL}/api/bots/connect`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: JSON.stringify({
+            bot_type: botType,
+            token: token,
+            user_id: userId
+          })
+        })
+        
+        const result = await response.json()
+        if (result.status === 'success') {
+          alert(`${botType} bot connected successfully!`)
+          setTokens({ ...tokens, [botType]: '' })
+          fetchBotStatus()
+        } else {
+          alert(`Failed to connect: ${result.message}`)
+        }
+      } catch (error: any) {
+        alert(`Error: ${error.message}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    const handleDisconnect = async (botType: string) => {
+      try {
+        const response = await fetch(`${API_URL}/api/bots/disconnect/${userId}/${botType}`, {
+          method: 'DELETE',
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
+        const result = await response.json()
+        if (result.status === 'success') {
+          alert(`${botType} bot disconnected`)
+          fetchBotStatus()
+        }
+      } catch (error: any) {
+        alert(`Error: ${error.message}`)
+      }
+    }
+    
+    const botConfigs = [
+      {
+        type: 'discord',
+        name: 'Discord',
+        icon: '💬',
+        instructions: [
+          '1. Go to https://discord.com/developers/applications',
+          '2. Click "New Application" and give it a name',
+          '3. Go to "Bot" section and click "Add Bot"',
+          '4. Copy the bot token',
+          '5. Enable "Message Content Intent" in Privileged Gateway Intents',
+          '6. Paste the token below and click Connect'
+        ],
+        link: 'https://discord.com/developers/applications'
+      },
+      {
+        type: 'telegram',
+        name: 'Telegram',
+        icon: '✈️',
+        instructions: [
+          '1. Open Telegram and search for @BotFather',
+          '2. Send /newbot command',
+          '3. Follow the instructions to create your bot',
+          '4. Copy the token BotFather gives you',
+          '5. Paste the token below and click Connect'
+        ],
+        link: 'https://t.me/BotFather'
+      },
+      {
+        type: 'whatsapp',
+        name: 'WhatsApp',
+        icon: '📱',
+        instructions: [
+          '1. Sign up at https://www.twilio.com/',
+          '2. Get your Account SID and Auth Token',
+          '3. Set up WhatsApp Sandbox or get a WhatsApp Business number',
+          '4. Enter your credentials below (format: SID|TOKEN|NUMBER)',
+          '5. Configure webhook URL: YOUR_API_URL/api/whatsapp/webhook'
+        ],
+        link: 'https://www.twilio.com/'
+      }
+    ]
+    
+    return (
+      <div className="bot-configuration">
+        <h3 style={{ marginBottom: '20px' }}>
+          <MessageCircle size={20} />
+          Connect Your Chat Bots
+        </h3>
+        <p style={{ marginBottom: '24px', color: '#888' }}>
+          Connect your own Discord, Telegram, or WhatsApp bots to chat with your AI personalities on those platforms.
+        </p>
+        
+        {botConfigs.map(bot => {
+          const isConnected = botStatus?.status?.[bot.type] || false
+          const isConfigured = botStatus?.configured?.[bot.type] || false
+          
+          return (
+            <div key={bot.type} className="bot-card" style={{
+              border: '1px solid #333',
+              borderRadius: '8px',
+              padding: '20px',
+              marginBottom: '20px',
+              background: isConnected ? 'rgba(76, 175, 80, 0.1)' : 'transparent'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{bot.icon}</span>
+                    {bot.name}
+                    {isConnected && <CheckCircle size={16} color="#4caf50" />}
+                  </h4>
+                </div>
+                <a href={bot.link} target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff' }}>
+                  <ExternalLink size={16} />
+                </a>
+              </div>
+              
+              <div style={{ marginBottom: '16px', fontSize: '14px', color: '#aaa' }}>
+                {bot.instructions.map((step, i) => (
+                  <div key={i} style={{ marginBottom: '4px' }}>{step}</div>
+                ))}
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <input
+                  type="password"
+                  placeholder={`Enter ${bot.name} token...`}
+                  value={tokens[bot.type as keyof typeof tokens]}
+                  onChange={(e) => setTokens({ ...tokens, [bot.type]: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: '#222',
+                    border: '1px solid #444',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    fontSize: '14px'
+                  }}
+                  disabled={isConnected}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {!isConnected ? (
+                  <button
+                    onClick={() => handleConnect(bot.type)}
+                    disabled={loading || !tokens[bot.type as keyof typeof tokens]}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#4a9eff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#fff',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      opacity: loading || !tokens[bot.type as keyof typeof tokens] ? 0.5 : 1
+                    }}
+                  >
+                    {loading ? 'Connecting...' : 'Connect'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleDisconnect(bot.type)}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#f44336',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Disconnect
+                  </button>
+                )}
+                {isConnected && (
+                  <span style={{ color: '#4caf50', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle size={16} />
+                    Connected
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
@@ -106,6 +338,13 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
             <span>AI Configuration</span>
           </button>
           <button 
+            className={`settings-tab ${activeTab === 'bots' ? 'active' : ''}`}
+            onClick={() => setActiveTab('bots')}
+          >
+            <Globe size={18} />
+            <span>Chat Bots</span>
+          </button>
+          <button 
             className={`settings-tab ${activeTab === 'editor' ? 'active' : ''}`}
             onClick={() => setActiveTab('editor')}
           >
@@ -117,6 +356,8 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
         <div className="settings-content">
           {activeTab === 'editor' ? (
             <PersonalityEditor personalities={personalities} onUpdate={handlePersonalityUpdate} />
+          ) : activeTab === 'bots' ? (
+            <BotConfiguration />
           ) : (
           <div className="settings-form">
             <div className="form-section">
@@ -259,6 +500,13 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
           <button className="btn-primary" onClick={handleSave}>
             <Save size={18} />
             <span>Save Changes</span>
+          </button>
+        </div>
+        )}
+        {activeTab === 'bots' && (
+          <div className="settings-footer">
+          <button className="btn-secondary" onClick={onClose}>
+            Close
           </button>
         </div>
         )}

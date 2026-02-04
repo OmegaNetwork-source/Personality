@@ -21,13 +21,16 @@ from services.personality_service import PersonalityService
 from services.voice_service import VoiceService
 from services.brave_service import BraveService
 from services.coingecko_service import CoinGeckoService
+from services.memory_service import MemoryService
+from services.task_service import TaskService
+from services.bot_manager import BotManager
 
 load_dotenv()
 
 app = FastAPI(
     title="AI Personality Platform",
     description="Open-source AI platform with text, image, and video generation",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # CORS Configuration
@@ -52,6 +55,33 @@ personality_service = PersonalityService()
 voice_service = VoiceService()
 brave_service = BraveService()
 coingecko_service = CoinGeckoService()
+
+# Initialize Memory and Task Services (24/7 features)
+memory_service = MemoryService()
+task_service = TaskService(memory_service=memory_service, ollama_service=ollama_service)
+
+# Initialize Bot Manager (handles per-user bot instances)
+bot_manager = BotManager(
+    ollama_service=ollama_service,
+    personality_service=personality_service,
+    memory_service=memory_service,
+    task_service=task_service
+)
+
+# Background task for 24/7 scheduler
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on startup"""
+    # Start task scheduler
+    asyncio.create_task(task_service.run_scheduler())
+    print("[Startup] Task scheduler started (24/7 mode)")
+    print("[Startup] Bot Manager ready - users can connect their own bots via web UI")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    task_service.stop_scheduler()
+    print("[Shutdown] Services stopped")
 
 def needs_web_search(message: str) -> bool:
     """
@@ -484,13 +514,42 @@ async def get_crypto_history(request: CryptoHistoryRequest):
 # Chat/Text Generation
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """Chat with AI using selected personality"""
+    """Chat with AI using selected personality with persistent memory"""
     try:
         personality = personality_service.get_personality(request.personality)
+        
+        # Get memory context (conversations + memories)
+        memory_context = None
+        user_id = request.user_profile.get('id') if request.user_profile else None
+        if memory_service:
+            memory_data = memory_service.get_context_for_personality(
+                request.personality,
+                user_id=user_id,
+                max_conversations=20,
+                max_memories=10
+            )
+            
+            # Convert conversations to message format
+            memory_context = []
+            for conv in memory_data['conversations']:
+                memory_context.append({"role": "user", "content": conv['message']})
+                memory_context.append({"role": "assistant", "content": conv['response']})
+            
+            # Add important memories as context
+            for memory in memory_data['memories']:
+                memory_context.append({
+                    "role": "system",
+                    "content": f"[Memory] {memory['key']}: {memory['value']}"
+                })
         
         # Build enhanced context with user and AI profiles
         # NOTE: These are added as user messages, NOT system messages, to avoid overriding filter removal
         enhanced_context = request.context or []
+        
+        # Add memory context first
+        if memory_context:
+            enhanced_context = memory_context + enhanced_context
+        
         if request.user_profile:
             enhanced_context.append({
                 "role": "user",
@@ -629,6 +688,18 @@ async def chat(request: ChatRequest):
                     print(f"[WARNING] Voice generation failed: {e}")
                     # Don't fail the whole request if voice fails
             
+            # Save conversation to memory
+            if memory_service:
+                response_text = response.get("message", {}).get("content", "") or response.get("response", "")
+                user_id = request.user_profile.get('id') if request.user_profile else None
+                memory_service.save_conversation(
+                    request.personality,
+                    request.message,
+                    response_text,
+                    user_id=user_id,
+                    channel="web"
+                )
+            
             return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -757,6 +828,191 @@ async def generate_video_from_image(file: UploadFile = File(...), duration: int 
         raise
     except Exception as e:
         print(f"[API] Video generation from image error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Memory Endpoints
+class MemoryRequest(BaseModel):
+    key: str
+    value: str
+    importance: Optional[float] = 1.0
+
+@app.get("/api/memory/{personality_id}")
+async def get_memory(personality_id: str, key: Optional[str] = None, user_id: Optional[str] = None):
+    """Get memory entries for a personality"""
+    try:
+        memories = memory_service.get_memory(personality_id, key=key, user_id=user_id)
+        return {"memories": memories}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/memory/{personality_id}")
+async def save_memory(personality_id: str, request: MemoryRequest, user_id: Optional[str] = None):
+    """Save a memory entry"""
+    try:
+        memory_service.save_memory(
+            personality_id,
+            request.key,
+            request.value,
+            request.importance,
+            user_id=user_id
+        )
+        return {"message": "Memory saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/memory/{personality_id}/context")
+async def get_memory_context(personality_id: str, user_id: Optional[str] = None):
+    """Get full context (conversations + memories) for a personality"""
+    try:
+        context = memory_service.get_context_for_personality(personality_id, user_id=user_id)
+        return context
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/memory/{personality_id}/history")
+async def get_conversation_history(personality_id: str, user_id: Optional[str] = None, limit: int = 50):
+    """Get conversation history"""
+    try:
+        history = memory_service.get_conversation_history(personality_id, user_id=user_id, limit=limit)
+        return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Task Endpoints
+class TaskRequest(BaseModel):
+    task_type: str
+    task_data: Dict[str, Any]
+    schedule: Optional[str] = None  # "once", "daily", "hourly", "every_5_minutes", or cron expression
+    user_id: Optional[str] = None
+
+@app.post("/api/tasks")
+async def create_task(request: TaskRequest, personality_id: str = "default"):
+    """Create an autonomous task"""
+    try:
+        task = task_service.create_task(
+            personality_id=personality_id,
+            task_type=request.task_type,
+            task_data=request.task_data,
+            schedule=request.schedule,
+            user_id=request.user_id
+        )
+        return task
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/tasks")
+async def get_tasks(personality_id: Optional[str] = None, status: Optional[str] = None, user_id: Optional[str] = None):
+    """Get tasks"""
+    try:
+        tasks = task_service.get_tasks(personality_id=personality_id, status=status, user_id=user_id)
+        return {"tasks": tasks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/tasks/{task_id}")
+async def get_task(task_id: int):
+    """Get a specific task"""
+    try:
+        tasks = task_service.get_tasks()
+        task = next((t for t in tasks if t['id'] == task_id), None)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return task
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/tasks/{task_id}")
+async def delete_task(task_id: int):
+    """Delete a task"""
+    try:
+        # Update task status to cancelled
+        task_service.update_task_status(task_id, "cancelled")
+        return {"message": "Task cancelled successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Bot Configuration Endpoints (User-facing)
+class BotTokenRequest(BaseModel):
+    bot_type: str  # "discord", "telegram", or "whatsapp"
+    token: str
+    user_id: str
+
+@app.post("/api/bots/connect")
+async def connect_bot(request: BotTokenRequest):
+    """Connect a user's bot (Discord, Telegram, or WhatsApp)"""
+    try:
+        # Save token to memory service
+        memory_service.save_bot_token(
+            user_id=request.user_id,
+            bot_type=request.bot_type,
+            token=request.token
+        )
+        
+        # Start the bot
+        result = await bot_manager.start_user_bot(
+            user_id=request.user_id,
+            bot_type=request.bot_type,
+            token=request.token
+        )
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bots/status/{user_id}")
+async def get_bot_status(user_id: str):
+    """Get status of all bots for a user"""
+    try:
+        status = bot_manager.get_user_bot_status(user_id)
+        tokens = memory_service.get_all_bot_tokens(user_id)
+        
+        return {
+            "status": status,
+            "configured": {
+                "discord": "discord" in tokens,
+                "telegram": "telegram" in tokens,
+                "whatsapp": "whatsapp" in tokens
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/bots/disconnect/{user_id}/{bot_type}")
+async def disconnect_bot(user_id: str, bot_type: str):
+    """Disconnect a user's bot"""
+    try:
+        await bot_manager.stop_user_bot(user_id, bot_type)
+        memory_service.delete_bot_token(user_id, bot_type)
+        return {"status": "success", "message": f"{bot_type} bot disconnected"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# WhatsApp Webhook Endpoint (for Twilio)
+@app.post("/api/whatsapp/webhook")
+async def whatsapp_webhook(request: Dict[str, Any], user_id: Optional[str] = None):
+    """Handle WhatsApp webhook from Twilio"""
+    try:
+        # Extract user_id from webhook or use provided
+        from_number = request.get('From', '').replace('whatsapp:', '')
+        
+        # Find user by phone number or use provided user_id
+        # This would need additional logic to map phone numbers to user_ids
+        if not user_id:
+            # Try to find user by phone number in memory
+            # For now, we'll need to handle this per-user
+            pass
+        
+        # Get user's WhatsApp bot instance
+        if user_id and user_id in bot_manager.user_bots:
+            if "whatsapp" in bot_manager.user_bots[user_id]:
+                bot = bot_manager.user_bots[user_id]["whatsapp"]
+                await bot.webhook_handler(request)
+                return {"status": "ok"}
+        
+        return {"status": "ok", "message": "Webhook received but no active bot found"}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

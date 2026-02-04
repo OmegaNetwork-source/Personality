@@ -11,6 +11,9 @@ A comprehensive AI platform providing text, image, and video generation with cus
 - 🌐 **Web Interface** - Full-featured web app
 - 💻 **Desktop App** - Local hardware acceleration with OpenCLaw integration
 - ☁️ **Cloud Deployment** - RunPod-ready configuration
+- 🧠 **Persistent Memory** - Remembers all conversations and learns from interactions (inspired by OpenClaw)
+- ⚙️ **24/7 Autonomous Tasks** - Runs tasks automatically on schedule without user interaction
+- 💬 **Multi-Platform Chat** - Discord, Telegram, and WhatsApp integration
 
 ## Architecture
 
@@ -73,6 +76,27 @@ npm start
 ## RunPod Deployment
 
 See `runpod/` directory for deployment configurations.
+
+## New Features (OpenClaw Integration)
+
+### 🧠 Persistent Memory System
+- Automatically saves all conversations
+- Remembers user preferences and important facts
+- No need to remind the AI - it remembers everything
+- Learns from interactions and improves over time
+
+### ⚙️ 24/7 Autonomous Task Execution
+- Create tasks that run automatically on schedule
+- Supports cron expressions, daily, hourly, and custom schedules
+- Task types: chat, web_search, crypto_price, reminder, custom
+- Runs in background without blocking the API
+
+### 💬 Multi-Platform Chat Integration
+- **Discord**: Full bot integration with personality support
+- **Telegram**: Complete bot with commands and personality switching
+- **WhatsApp**: Integration via Twilio API
+
+See [OPENCLAW_INTEGRATION.md](backend/OPENCLAW_INTEGRATION.md) for detailed setup instructions.
 
 ## License
 
