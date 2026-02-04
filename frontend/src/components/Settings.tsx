@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, User, Bot, Save, X } from 'lucide-react'
+import { Settings as SettingsIcon, User, Bot, Save, X, Globe, Sparkles } from 'lucide-react'
 import './Settings.css'
 
 interface UserProfile {
@@ -63,6 +63,13 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
 
   const genders = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other']
 
+  useEffect(() => {
+    // Ensure we have a valid personality selected
+    if (personalities.length > 0 && !personalities.find(p => p.id === aiForm.personality)) {
+      setAIForm({ ...aiForm, personality: personalities[0].id })
+    }
+  }, [personalities])
+
   const handleSave = () => {
     if (userForm.name && userForm.ethnicity && userForm.gender && 
         aiForm.personality && aiForm.ethnicity && aiForm.gender) {
@@ -70,6 +77,10 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
       onClose()
     }
   }
+
+  const selectedPersonality = personalities.find(p => p.id === aiForm.personality)
+  const availableLanguages = selectedPersonality?.language?.primary || []
+  const hasLanguages = availableLanguages.length > 0
 
   return (
     <div className="settings-overlay" onClick={onClose}>
@@ -79,7 +90,7 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
             <SettingsIcon size={24} />
             <h2>Settings</h2>
           </div>
-          <button className="settings-close" onClick={onClose}>
+          <button className="settings-close" onClick={onClose} aria-label="Close settings">
             <X size={20} />
           </button>
         </div>
@@ -105,56 +116,66 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
           {activeTab === 'user' && (
             <div className="settings-form">
               <div className="form-section">
-                <h3>Personal Information</h3>
-                <div className="form-group">
-                  <label>Name *</label>
-                  <input
-                    type="text"
-                    value={userForm.name}
-                    onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                    placeholder="Enter your name"
-                  />
+                <h3>
+                  <User size={18} />
+                  Personal Information
+                </h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Name *</label>
+                    <input
+                      type="text"
+                      value={userForm.name}
+                      onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                      placeholder="Enter your name"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Age</label>
+                    <input
+                      type="text"
+                      value={userForm.age}
+                      onChange={(e) => setUserForm({ ...userForm, age: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Ethnicity *</label>
-                  <select
-                    value={userForm.ethnicity}
-                    onChange={(e) => setUserForm({ ...userForm, ethnicity: e.target.value })}
-                  >
-                    <option value="">Select ethnicity</option>
-                    {ethnicities.map(eth => (
-                      <option key={eth} value={eth}>{eth}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Ethnicity *</label>
+                    <select
+                      value={userForm.ethnicity}
+                      onChange={(e) => setUserForm({ ...userForm, ethnicity: e.target.value })}
+                    >
+                      <option value="">Select ethnicity</option>
+                      {ethnicities.map(eth => (
+                        <option key={eth} value={eth}>{eth}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="form-group">
-                  <label>Gender *</label>
-                  <select
-                    value={userForm.gender}
-                    onChange={(e) => setUserForm({ ...userForm, gender: e.target.value })}
-                  >
-                    <option value="">Select gender</option>
-                    {genders.map(gen => (
-                      <option key={gen} value={gen}>{gen}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Age</label>
-                  <input
-                    type="text"
-                    value={userForm.age}
-                    onChange={(e) => setUserForm({ ...userForm, age: e.target.value })}
-                    placeholder="Optional"
-                  />
+                  <div className="form-group">
+                    <label>Gender *</label>
+                    <select
+                      value={userForm.gender}
+                      onChange={(e) => setUserForm({ ...userForm, gender: e.target.value })}
+                    >
+                      <option value="">Select gender</option>
+                      {genders.map(gen => (
+                        <option key={gen} value={gen}>{gen}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="form-section">
-                <h3>Additional Information</h3>
+                <h3>
+                  <Sparkles size={18} />
+                  Additional Information
+                </h3>
                 <div className="form-group">
                   <label>Interests</label>
                   <textarea
@@ -181,7 +202,11 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
           {activeTab === 'ai' && (
             <div className="settings-form">
               <div className="form-section">
-                <h3>AI Configuration</h3>
+                <h3>
+                  <Bot size={18} />
+                  AI Configuration
+                </h3>
+                
                 <div className="form-group">
                   <label>Personality Type *</label>
                   <select
@@ -190,7 +215,6 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                       const newPersonality = e.target.value
                       const selectedPersonality = personalities.find(p => p.id === newPersonality)
                       const availableLanguages = selectedPersonality?.language?.primary || []
-                      // Keep preferred language if it's still available, otherwise use first available or empty
                       const newPreferredLanguage = availableLanguages.includes(aiForm.preferredLanguage || '')
                         ? aiForm.preferredLanguage
                         : (availableLanguages[0] || '')
@@ -201,79 +225,93 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                       })
                     }}
                   >
-                    {personalities.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} - {p.description}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {(() => {
-                  const selectedPersonality = personalities.find(p => p.id === aiForm.personality)
-                  const availableLanguages = selectedPersonality?.language?.primary || []
-                  const hasLanguages = availableLanguages.length > 0
-                  
-                  return hasLanguages ? (
-                    <div className="form-group">
-                      <label>Preferred Language</label>
-                      <select
-                        value={aiForm.preferredLanguage || ''}
-                        onChange={(e) => setAIForm({ ...aiForm, preferredLanguage: e.target.value })}
-                      >
-                        <option value="">Auto (use personality's default)</option>
-                        {availableLanguages.map(lang => (
-                          <option key={lang} value={lang}>{lang}</option>
+                    {personalities.length === 0 ? (
+                      <option value="">Loading personalities...</option>
+                    ) : (
+                      <>
+                        <option value="">Select a personality</option>
+                        {personalities.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} - {p.description}
+                          </option>
                         ))}
-                      </select>
-                      {selectedPersonality?.language?.preference && (
-                        <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                          {selectedPersonality.language.preference}
-                        </small>
-                      )}
-                    </div>
-                  ) : null
-                })()}
-
-                <div className="form-group">
-                  <label>AI Name</label>
-                  <input
-                    type="text"
-                    value={aiForm.name}
-                    onChange={(e) => setAIForm({ ...aiForm, name: e.target.value })}
-                    placeholder="Give your AI a name (optional)"
-                  />
+                      </>
+                    )}
+                  </select>
+                  {personalities.length === 0 && (
+                    <small className="form-hint">Make sure the backend is running and accessible.</small>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label>AI Ethnicity *</label>
-                  <select
-                    value={aiForm.ethnicity}
-                    onChange={(e) => setAIForm({ ...aiForm, ethnicity: e.target.value })}
-                  >
-                    <option value="">Select AI ethnicity</option>
-                    {ethnicities.map(eth => (
-                      <option key={eth} value={eth}>{eth}</option>
-                    ))}
-                  </select>
+                {hasLanguages && (
+                  <div className="form-group">
+                    <label>
+                      <Globe size={16} />
+                      Preferred Language
+                    </label>
+                    <select
+                      value={aiForm.preferredLanguage || ''}
+                      onChange={(e) => setAIForm({ ...aiForm, preferredLanguage: e.target.value })}
+                    >
+                      <option value="">Auto (use personality's default)</option>
+                      {availableLanguages.map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                    {selectedPersonality?.language?.preference && (
+                      <small className="form-hint">
+                        {selectedPersonality.language.preference}
+                      </small>
+                    )}
+                  </div>
+                )}
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>AI Name</label>
+                    <input
+                      type="text"
+                      value={aiForm.name}
+                      onChange={(e) => setAIForm({ ...aiForm, name: e.target.value })}
+                      placeholder="Give your AI a name (optional)"
+                    />
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>AI Gender *</label>
-                  <select
-                    value={aiForm.gender}
-                    onChange={(e) => setAIForm({ ...aiForm, gender: e.target.value })}
-                  >
-                    <option value="">Select AI gender</option>
-                    {genders.map(gen => (
-                      <option key={gen} value={gen}>{gen}</option>
-                    ))}
-                  </select>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>AI Ethnicity *</label>
+                    <select
+                      value={aiForm.ethnicity}
+                      onChange={(e) => setAIForm({ ...aiForm, ethnicity: e.target.value })}
+                    >
+                      <option value="">Select AI ethnicity</option>
+                      {ethnicities.map(eth => (
+                        <option key={eth} value={eth}>{eth}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>AI Gender *</label>
+                    <select
+                      value={aiForm.gender}
+                      onChange={(e) => setAIForm({ ...aiForm, gender: e.target.value })}
+                    >
+                      <option value="">Select AI gender</option>
+                      {genders.map(gen => (
+                        <option key={gen} value={gen}>{gen}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="form-section">
-                <h3>Personality Traits</h3>
+                <h3>
+                  <Sparkles size={18} />
+                  Personality Traits
+                </h3>
                 <div className="traits-grid">
                   {['Friendly', 'Professional', 'Creative', 'Analytical', 'Humorous', 'Supportive', 'Direct', 'Empathetic'].map(trait => (
                     <label key={trait} className="trait-checkbox">

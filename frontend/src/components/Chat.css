@@ -88,13 +88,22 @@
 }
 
 .input-action-btn.send-btn {
-  background: var(--accent-color);
+  background: #4a4a4a;
   color: white;
   border: none;
 }
 
+[data-theme="light"] .input-action-btn.send-btn {
+  background: #e5e5e5;
+  color: #1a1a1a;
+}
+
 .input-action-btn.send-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: #5a5a5a;
+}
+
+[data-theme="light"] .input-action-btn.send-btn:hover:not(:disabled) {
+  background: #d5d5d5;
 }
 
 .input-action-btn:disabled {
@@ -119,11 +128,11 @@
 }
 
 .message-wrapper.user {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .message-wrapper.assistant {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .message {
@@ -304,16 +313,25 @@
   height: 40px;
   border: none;
   border-radius: 50%;
-  background: var(--accent-color);
+  background: #4a4a4a;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
 }
 
+[data-theme="light"] .send-button {
+  background: #e5e5e5;
+  color: #1a1a1a;
+}
+
 .send-button:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: #5a5a5a;
   transform: scale(1.05);
+}
+
+[data-theme="light"] .send-button:hover:not(:disabled) {
+  background: #d5d5d5;
 }
 
 .send-button:disabled {
