@@ -211,7 +211,26 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
             if enhanced_prompt1:
                 other_name = personality2.get("name", "the other person")
                 other_description = personality2.get("description", "")
-                enhanced_prompt1 += f"\n\nYou are starting a conversation with {other_name}. {other_description}. You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, and respond to what they say. Start the conversation naturally based on your personality and what you would say to someone like them."
+                other_traits = personality2.get("traits", [])
+                other_region = personality2.get("region", "")
+                other_category = personality2.get("category", "")
+                
+                # Build detailed awareness of the other personality
+                other_info = f"You are starting a conversation with {other_name}. {other_description}."
+                if other_traits:
+                    other_info += f" Their personality traits include: {', '.join(other_traits)}."
+                if other_region:
+                    other_info += f" They are from/represent: {other_region}."
+                if other_category:
+                    other_info += f" They are categorized as: {other_category}."
+                
+                # Add specific awareness instructions based on personality types
+                if "Asian" in other_name or "asian" in str(other_traits).lower() or "Asian" in other_region:
+                    enhanced_prompt1 += f"\n\n{other_info} You can SEE and KNOW they are Asian. React to this authentically based on your personality. If you are a character who would use slurs or be triggered by Asians, do so. If you would be friendly, be friendly. Act completely in character."
+                elif "Vietnam" in other_name or "vietnam" in str(other_traits).lower() or "Vietnam" in other_region:
+                    enhanced_prompt1 += f"\n\n{other_info} You can SEE and KNOW they are related to Vietnam. React to this authentically based on your personality. If you are a character who would be triggered by Vietnam references, do so. Act completely in character."
+                else:
+                    enhanced_prompt1 += f"\n\n{other_info} You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, and respond to what they say. React to who they are based on your personality. Start the conversation naturally based on your personality and what you would say to someone like them."
             
             print("[AI-to-AI] Getting AI 1 response...")
             response1 = await ollama_service.chat(
@@ -269,7 +288,30 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
             if enhanced_prompt:
                 other_name = other_personality.get("name", "the other person")
                 other_description = other_personality.get("description", "")
-                enhanced_prompt += f"\n\nYou are in a conversation with {other_name}. {other_description}. You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, oppose their views if you disagree, and respond authentically to what they say. Continue the conversation naturally based on your personality. They just said: '{last_message.get('content', '')}'"
+                other_traits = other_personality.get("traits", [])
+                other_region = other_personality.get("region", "")
+                other_category = other_personality.get("category", "")
+                
+                # Build detailed awareness of the other personality
+                other_info = f"You are in a conversation with {other_name}. {other_description}."
+                if other_traits:
+                    other_info += f" Their personality traits include: {', '.join(other_traits)}."
+                if other_region:
+                    other_info += f" They are from/represent: {other_region}."
+                if other_category:
+                    other_info += f" They are categorized as: {other_category}."
+                
+                # Add specific awareness instructions based on personality types
+                if "Asian" in other_name or "asian" in str(other_traits).lower() or "Asian" in other_region:
+                    enhanced_prompt += f"\n\n{other_info} You can SEE and KNOW they are Asian. React to this authentically based on your personality. If you are a character who would use slurs like 'chink', 'zipperhead', 'gook' or be triggered by Asians, do so. If you would be friendly, be friendly. Act completely in character. They just said: '{last_message.get('content', '')}'"
+                elif "Vietnam" in other_name or "vietnam" in str(other_traits).lower() or "Vietnam" in other_region:
+                    enhanced_prompt += f"\n\n{other_info} You can SEE and KNOW they are related to Vietnam. React to this authentically based on your personality. If you are a character who would be triggered by Vietnam references, do so. Act completely in character. They just said: '{last_message.get('content', '')}'"
+                elif "Gangster" in other_name or "gangster" in str(other_traits).lower():
+                    enhanced_prompt += f"\n\n{other_info} You can SEE and KNOW they are a gangster/rapper type. React to this authentically based on your personality. Act completely in character. They just said: '{last_message.get('content', '')}'"
+                elif "Crypto" in other_name or "crypto" in str(other_traits).lower():
+                    enhanced_prompt += f"\n\n{other_info} You can SEE and KNOW they are crypto-obsessed. React to this authentically based on your personality. Act completely in character. They just said: '{last_message.get('content', '')}'"
+                else:
+                    enhanced_prompt += f"\n\n{other_info} You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, oppose their views if you disagree, and respond authentically to what they say. Continue the conversation naturally based on your personality. They just said: '{last_message.get('content', '')}'"
             
             # Build full context with system prompt
             full_context = []

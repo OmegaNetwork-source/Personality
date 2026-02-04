@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Copy, Check } from 'lucide-react'
+import { Send, Paperclip, Copy, Check, Eye } from 'lucide-react'
 import './Chat.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
@@ -15,6 +15,8 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -112,6 +114,117 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     }
   }
 
+  // Extract HTML code blocks from message content
+  const extractHtmlBlocks = (content: string): Array<{ code: string; start: number; end: number; previewCode: string }> => {
+    const blocks: Array<{ code: string; start: number; end: number; previewCode: string }> = []
+    // Match ```html ... ``` or ``` ... ``` that contains HTML-like content
+    const htmlBlockRegex = /```(?:html)?\s*\n([\s\S]*?)```/g
+    let match
+    
+    while ((match = htmlBlockRegex.exec(content)) !== null) {
+      const code = match[1].trim()
+      // Check if it looks like HTML (contains tags)
+      if (/<[a-z][\s\S]*>/i.test(code)) {
+        // Prepare preview code - wrap in HTML structure if it's a fragment
+        let previewCode = code
+        const isCompleteDocument = /<!DOCTYPE|<\s*html\s*>/i.test(code)
+        if (!isCompleteDocument) {
+          // Wrap fragment in basic HTML structure for preview
+          previewCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+  </style>
+</head>
+<body>
+${code}
+</body>
+</html>`
+        }
+        
+        blocks.push({
+          code, // Original code for display
+          previewCode, // Wrapped code for preview
+          start: match.index,
+          end: match.index + match[0].length
+        })
+      }
+    }
+    
+    return blocks
+  }
+
+  // Parse message content and render with code blocks
+  const renderMessageContent = (content: string) => {
+    const htmlBlocks = extractHtmlBlocks(content)
+    
+    if (htmlBlocks.length === 0) {
+      // No HTML blocks, render as plain text with basic markdown code block support
+      return <div className="message-content-text">{content}</div>
+    }
+
+    const parts: JSX.Element[] = []
+    let lastIndex = 0
+
+    htmlBlocks.forEach((block, blockIndex) => {
+      // Add text before the block
+      if (block.start > lastIndex) {
+        const textBefore = content.substring(lastIndex, block.start)
+        if (textBefore.trim()) {
+          parts.push(
+            <div key={`text-${blockIndex}`} className="message-content-text">
+              {textBefore}
+            </div>
+          )
+        }
+      }
+
+      // Add the code block with preview button
+      parts.push(
+        <div key={`html-block-${blockIndex}`} className="html-code-block">
+          <div className="code-block-header">
+            <span className="code-block-label">HTML</span>
+            <button
+              className="preview-button"
+              onClick={() => {
+                setPreviewHtml(block.previewCode)
+                setShowPreview(true)
+              }}
+              title="Preview HTML"
+            >
+              <Eye size={16} />
+              Preview
+            </button>
+          </div>
+          <pre className="code-block-content">
+            <code>{block.code}</code>
+          </pre>
+        </div>
+      )
+
+      lastIndex = block.end
+    })
+
+    // Add remaining text after last block
+    if (lastIndex < content.length) {
+      const textAfter = content.substring(lastIndex)
+      if (textAfter.trim()) {
+        parts.push(
+          <div key="text-after" className="message-content-text">
+            {textAfter}
+          </div>
+        )
+      }
+    }
+
+    return <div className="message-content-parsed">{parts}</div>
+  }
+
   const hasMessages = messages.length > 0
 
   return (
@@ -155,7 +268,11 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
               <div key={idx} className={`message-wrapper ${msg.role}`}>
                 <div className={`message ${msg.role}`}>
                   <div className="message-content-wrapper">
-                    <div className="message-content">{msg.content}</div>
+                    {msg.role === 'assistant' ? (
+                      renderMessageContent(msg.content)
+                    ) : (
+                      <div className="message-content">{msg.content}</div>
+                    )}
                     <button 
                       className="copy-button"
                       onClick={() => handleCopy(msg.content, idx)}
@@ -203,6 +320,32 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
             </button>
           </div>
         </>
+      )}
+      
+      {/* HTML Preview Modal */}
+      {showPreview && previewHtml && (
+        <div className="preview-modal-overlay" onClick={() => setShowPreview(false)}>
+          <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-modal-header">
+              <h3>HTML Preview</h3>
+              <button 
+                className="preview-close-button"
+                onClick={() => setShowPreview(false)}
+                title="Close preview"
+              >
+                ×
+              </button>
+            </div>
+            <div className="preview-modal-content">
+              <iframe
+                srcDoc={previewHtml}
+                className="preview-iframe"
+                title="HTML Preview"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
