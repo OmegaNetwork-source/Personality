@@ -18,6 +18,8 @@ from services.ollama_service import OllamaService
 from services.image_service import ImageService
 from services.video_service import VideoService
 from services.personality_service import PersonalityService
+from services.brave_service import BraveService
+from services.coingecko_service import CoinGeckoService
 
 load_dotenv()
 
@@ -46,6 +48,8 @@ ollama_service = OllamaService()
 image_service = ImageService()
 video_service = VideoService()
 personality_service = PersonalityService()
+brave_service = BraveService()
+coingecko_service = CoinGeckoService()
 
 # Request Models
 class ChatRequest(BaseModel):
@@ -56,6 +60,7 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = False
     user_profile: Optional[Dict[str, Any]] = None
     ai_profile: Optional[Dict[str, Any]] = None
+    use_search: Optional[bool] = False  # Enable web search for current information
 
 class AIToAIChatRequest(BaseModel):
     personality1: str
@@ -95,7 +100,9 @@ async def root():
         "services": {
             "ollama": await ollama_service.check_health(),
             "image": await image_service.check_health(),
-            "video": await video_service.check_health()
+            "video": await video_service.check_health(),
+            "brave": await brave_service.check_health(),
+            "coingecko": await coingecko_service.check_health()
         }
     }
 
@@ -272,6 +279,117 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+# Web Search Endpoint
+class SearchRequest(BaseModel):
+    query: str
+    count: Optional[int] = 10
+    country: Optional[str] = "US"
+    search_lang: Optional[str] = "en"
+    freshness: Optional[str] = None
+
+@app.post("/api/search")
+async def search_web(request: SearchRequest):
+    """Perform web search using Brave Search API"""
+    try:
+        results = await brave_service.search(
+            query=request.query,
+            count=request.count,
+            country=request.country,
+            search_lang=request.search_lang,
+            freshness=request.freshness
+        )
+        return {
+            "results": results,
+            "formatted": brave_service.format_search_results(results)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# CoinGecko Crypto Price Endpoints
+class CryptoPriceRequest(BaseModel):
+    coin_ids: List[str]
+    vs_currencies: Optional[List[str]] = ["usd"]
+    include_market_cap: Optional[bool] = True
+    include_24hr_vol: Optional[bool] = True
+    include_24hr_change: Optional[bool] = True
+
+class CryptoSearchRequest(BaseModel):
+    query: str
+
+class CryptoMarketDataRequest(BaseModel):
+    coin_id: str
+    vs_currency: Optional[str] = "usd"
+
+class CryptoHistoryRequest(BaseModel):
+    coin_id: str
+    vs_currency: Optional[str] = "usd"
+    days: Optional[int] = 7
+
+@app.get("/api/crypto/trending")
+async def get_trending_coins():
+    """Get currently trending cryptocurrencies"""
+    try:
+        trending = await coingecko_service.get_trending_coins()
+        return {"trending": trending}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/crypto/search")
+async def search_crypto(request: CryptoSearchRequest):
+    """Search for cryptocurrencies by name or symbol"""
+    try:
+        results = await coingecko_service.search_coins(request.query)
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/crypto/price")
+async def get_crypto_price(request: CryptoPriceRequest):
+    """Get current price for one or more cryptocurrencies"""
+    try:
+        prices = await coingecko_service.get_price(
+            coin_ids=request.coin_ids,
+            vs_currencies=request.vs_currencies,
+            include_market_cap=request.include_market_cap,
+            include_24hr_vol=request.include_24hr_vol,
+            include_24hr_change=request.include_24hr_change
+        )
+        formatted = coingecko_service.get_price_and_format(
+            coin_ids=request.coin_ids,
+            vs_currencies=request.vs_currencies
+        )
+        return {
+            "prices": prices,
+            "formatted": formatted
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/crypto/market-data")
+async def get_crypto_market_data(request: CryptoMarketDataRequest):
+    """Get detailed market data for a specific cryptocurrency"""
+    try:
+        market_data = await coingecko_service.get_coin_market_data(
+            coin_id=request.coin_id,
+            vs_currency=request.vs_currency
+        )
+        return {"market_data": market_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/crypto/history")
+async def get_crypto_history(request: CryptoHistoryRequest):
+    """Get historical price data for a cryptocurrency"""
+    try:
+        history = await coingecko_service.get_price_history(
+            coin_id=request.coin_id,
+            vs_currency=request.vs_currency,
+            days=request.days
+        )
+        return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Chat/Text Generation
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
@@ -297,6 +415,79 @@ async def chat(request: ChatRequest):
                 "content": ai_info
             })
         
+        # Detect crypto-related queries and fetch prices automatically
+        crypto_prices = None
+        message_lower = request.message.lower()
+        crypto_keywords = ["bitcoin", "btc", "ethereum", "eth", "crypto", "cryptocurrency", "price", "prices", 
+                          "solana", "sol", "cardano", "ada", "polkadot", "dot", "chainlink", "link",
+                          "litecoin", "ltc", "dogecoin", "doge", "shiba", "shib", "price of", "how much is"]
+        
+        # Common crypto coin IDs for CoinGecko
+        crypto_coin_map = {
+            "bitcoin": "bitcoin", "btc": "bitcoin",
+            "ethereum": "ethereum", "eth": "ethereum",
+            "solana": "solana", "sol": "solana",
+            "cardano": "cardano", "ada": "cardano",
+            "polkadot": "polkadot", "dot": "polkadot",
+            "chainlink": "chainlink", "link": "chainlink",
+            "litecoin": "litecoin", "ltc": "litecoin",
+            "dogecoin": "dogecoin", "doge": "dogecoin",
+            "shiba": "shiba-inu", "shib": "shiba-inu"
+        }
+        
+        # Check if message contains crypto-related keywords
+        detected_coins = []
+        for keyword, coin_id in crypto_coin_map.items():
+            if keyword in message_lower:
+                if coin_id not in detected_coins:
+                    detected_coins.append(coin_id)
+        
+        # If crypto keywords detected, fetch prices
+        if detected_coins or any(kw in message_lower for kw in ["crypto", "cryptocurrency", "price"]):
+            try:
+                if detected_coins:
+                    # Fetch prices for detected coins
+                    crypto_prices = await coingecko_service.get_price_and_format(
+                        coin_ids=detected_coins[:5],  # Limit to 5 coins
+                        vs_currencies=["usd"]
+                    )
+                elif "trending" in message_lower or "popular" in message_lower:
+                    # Get trending coins
+                    trending = await coingecko_service.get_trending_coins()
+                    if trending:
+                        top_coins = [coin["item"]["id"] for coin in trending[:5]]
+                        crypto_prices = await coingecko_service.get_price_and_format(
+                            coin_ids=top_coins,
+                            vs_currencies=["usd"]
+                        )
+                
+                if crypto_prices:
+                    enhanced_context.append({
+                        "role": "system",
+                        "content": f"Current cryptocurrency price data:\n{crypto_prices}\n\nUse this real-time price information to answer the user's question accurately."
+                    })
+            except Exception as e:
+                print(f"[API] Crypto price fetch failed: {e}")
+                # Continue without crypto prices
+        
+        # Perform web search if requested or if message seems to need current information
+        search_results = None
+        if request.use_search:
+            try:
+                # Use the user's message as the search query
+                search_results = await brave_service.search_and_format(
+                    query=request.message,
+                    count=5
+                )
+                # Add search results to context
+                enhanced_context.append({
+                    "role": "system",
+                    "content": f"Current web search results for context:\n{search_results}\n\nUse this information to provide accurate, up-to-date answers. Cite sources when relevant."
+                })
+            except Exception as e:
+                print(f"[API] Search failed: {e}")
+                # Continue without search results
+        
         # Pass preferred language to personality system prompt builder
         preferred_language = request.ai_profile.get('preferredLanguage') if request.ai_profile else None
         
@@ -319,6 +510,11 @@ async def chat(request: ChatRequest):
                 context=enhanced_context if enhanced_context else None,
                 preferred_language=preferred_language
             )
+            # Add search results and crypto prices to response if available
+            if search_results:
+                response["search_results"] = search_results
+            if crypto_prices:
+                response["crypto_prices"] = crypto_prices
             return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

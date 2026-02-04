@@ -287,6 +287,27 @@
   color: var(--text-primary);
 }
 
+.attach-button.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.attach-button.active:hover {
+  background: var(--accent-color);
+  opacity: 0.9;
+}
+
+.input-action-btn.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.input-action-btn.active:hover {
+  background: var(--accent-color);
+  opacity: 0.9;
+}
+
 .chat-input {
   flex: 0 1 auto;
   width: 100%;
