@@ -75,14 +75,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     }
   }
 
-  const handlePlayAudio = async (content: string, index: number) => {
-    // Stop any currently playing audio
-    if (audioRef) {
-      audioRef.pause()
-      audioRef.currentTime = 0
-      setAudioRef(null)
-    }
-
+  const handlePlayAudio = (content: string, index: number) => {
     if (playingIndex === index) {
       // If clicking the same message, stop playing
       setPlayingIndex(null)
@@ -92,14 +85,16 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
       return
     }
 
+    // Stop any currently playing audio
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+
     setPlayingIndex(index)
 
     try {
       // Use browser's built-in Web Speech API (free, no API key needed)
       if ('speechSynthesis' in window) {
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel()
-        
         // Create speech utterance
         const utterance = new SpeechSynthesisUtterance(content)
         
