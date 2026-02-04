@@ -110,6 +110,7 @@ export default function PersonalityEditor({ personalities, onUpdate }: Props) {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify(personalityData)
       })

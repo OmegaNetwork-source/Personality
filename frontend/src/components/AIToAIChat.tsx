@@ -76,6 +76,7 @@ export default function AIToAIChat({ personalities }: Props) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
         },
           body: JSON.stringify({
             personality1: ai1,
@@ -155,6 +156,7 @@ export default function AIToAIChat({ personalities }: Props) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({
           personality1: ai1,
