@@ -34,7 +34,17 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     const file = e.target.files?.[0]
     if (file) {
       // Handle file upload - you can add file processing logic here
-      console.log('File selected:', file.name)
+      console.log('File selected:', file.name, file.type, file.size)
+      
+      // For now, add a message showing the file was attached
+      // You can extend this to actually process/upload the file
+      const fileInfo = `📎 Attached: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
+      setInput(prev => prev ? `${prev}\n${fileInfo}` : fileInfo)
+      
+      // Reset the input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -103,6 +113,13 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
 
   return (
     <div className="chat-container">
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        multiple
+      />
       {!hasMessages ? (
         <div className="chat-welcome-screen">
           <div className="welcome-content">
@@ -181,13 +198,6 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
             <button className="send-button" onClick={sendMessage} disabled={loading || !input.trim()}>
               <Send size={20} />
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-              multiple
-            />
           </div>
         </>
       )}
