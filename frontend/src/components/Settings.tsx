@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Bot, Save, X, Globe } from 'lucide-react'
+import { Settings as SettingsIcon, Bot, Save, X, Globe, Edit3 } from 'lucide-react'
+import PersonalityEditor from './PersonalityEditor'
 import './Settings.css'
 
 interface AIProfile {
@@ -14,21 +15,13 @@ interface AIProfile {
 interface Props {
   userProfile: any | null
   aiProfile: AIProfile | null
-  personalities: Array<{ 
-    id: string
-    name: string
-    description: string
-    language?: {
-      primary: string[]
-      preference?: string
-      code_switching?: boolean
-    }
-  }>
+  personalities: any[]
   onSave: (userProfile: any, aiProfile: AIProfile) => void
   onClose: () => void
 }
 
 export default function Settings({ userProfile, aiProfile, personalities, onSave, onClose }: Props) {
+  const [activeTab, setActiveTab] = useState<'config' | 'editor'>('config')
   const [aiForm, setAIForm] = useState<AIProfile>({
     personality: aiProfile?.personality || 'default',
     ethnicity: aiProfile?.ethnicity || '',
@@ -64,6 +57,23 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
     }
   }
 
+  const handlePersonalityUpdate = async () => {
+    // Refresh personalities list
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+      const response = await fetch(`${API_URL}/personalities`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        // Trigger parent to refresh
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Failed to refresh personalities:', error)
+    }
+  }
+
   const selectedPersonality = personalities.find(p => p.id === aiForm.personality)
   const availableLanguages = selectedPersonality?.language?.primary || []
   const hasLanguages = availableLanguages.length > 0
@@ -81,7 +91,27 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
           </button>
         </div>
 
+        <div className="settings-tabs">
+          <button 
+            className={`settings-tab ${activeTab === 'config' ? 'active' : ''}`}
+            onClick={() => setActiveTab('config')}
+          >
+            <Bot size={18} />
+            <span>AI Configuration</span>
+          </button>
+          <button 
+            className={`settings-tab ${activeTab === 'editor' ? 'active' : ''}`}
+            onClick={() => setActiveTab('editor')}
+          >
+            <Edit3 size={18} />
+            <span>Manage Personalities</span>
+          </button>
+        </div>
+
         <div className="settings-content">
+          {activeTab === 'editor' ? (
+            <PersonalityEditor personalities={personalities} onUpdate={handlePersonalityUpdate} />
+          ) : (
           <div className="settings-form">
             <div className="form-section">
               <h3>
@@ -204,9 +234,11 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
               </div>
             </div>
           </div>
+          )}
         </div>
 
-        <div className="settings-footer">
+        {activeTab === 'config' && (
+          <div className="settings-footer">
           <button className="btn-secondary" onClick={onClose}>
             Cancel
           </button>
@@ -215,6 +247,7 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
             <span>Save Changes</span>
           </button>
         </div>
+        )}
       </div>
     </div>
   )

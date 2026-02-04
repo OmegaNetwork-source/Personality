@@ -12,6 +12,7 @@ import os
 from dotenv import load_dotenv
 import json
 import asyncio
+from pathlib import Path
 
 from services.ollama_service import OllamaService
 from services.image_service import ImageService
@@ -110,6 +111,38 @@ async def get_personalities():
 async def get_personality(personality_id: str):
     """Get specific personality details"""
     return personality_service.get_personality(personality_id)
+
+@app.post("/personalities")
+async def create_personality(personality: Dict[str, Any]):
+    """Create a new custom personality"""
+    try:
+        return personality_service.create_personality(personality)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/personalities/{personality_id}")
+async def update_personality(personality_id: str, personality: Dict[str, Any]):
+    """Update an existing personality"""
+    try:
+        return personality_service.update_personality(personality_id, personality)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Personality not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/personalities/{personality_id}")
+async def delete_personality(personality_id: str):
+    """Delete a custom personality"""
+    try:
+        success = personality_service.delete_personality(personality_id)
+        if success:
+            return {"message": "Personality deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Personality not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Chat/Text Generation
 @app.post("/api/chat")

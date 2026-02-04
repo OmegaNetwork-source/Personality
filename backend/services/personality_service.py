@@ -95,23 +95,61 @@ class PersonalityService:
     
     def create_personality(
         self,
-        personality_id: str,
-        name: str,
-        description: str,
-        system_prompt: str,
-        traits: List[str]
+        personality_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Create a new custom personality"""
-        personality = {
-            "id": personality_id,
-            "name": name,
-            "description": description,
-            "system_prompt": system_prompt,
-            "traits": traits
-        }
+        personality_id = personality_data.get("id", "").strip().lower().replace(" ", "_")
+        if not personality_id:
+            raise ValueError("Personality ID is required")
+        
+        # Ensure ID is valid filename
+        personality_id = "".join(c for c in personality_id if c.isalnum() or c in ('_', '-'))
+        
+        personality_data["id"] = personality_id
+        personality_file = self.personalities_dir / f"{personality_id}.json"
+        
+        # Check if it's a default personality (don't allow overwriting)
+        default_personalities = ["default", "developer", "creative", "analytical", "casual", 
+                               "asian", "middle_eastern", "european", "latin_american", "african"]
+        if personality_id in default_personalities and personality_file.exists():
+            raise ValueError(f"Cannot overwrite default personality: {personality_id}")
+        
+        with open(personality_file, 'w', encoding='utf-8') as f:
+            json.dump(personality_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"[DEBUG] Created personality: {personality_id}")
+        return personality_data
+    
+    def update_personality(
+        self,
+        personality_id: str,
+        personality_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update an existing personality"""
+        personality_file = self.personalities_dir / f"{personality_id}.json"
+        
+        if not personality_file.exists():
+            raise FileNotFoundError(f"Personality {personality_id} not found")
+        
+        # Preserve the ID
+        personality_data["id"] = personality_id
+        
+        with open(personality_file, 'w', encoding='utf-8') as f:
+            json.dump(personality_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"[DEBUG] Updated personality: {personality_id}")
+        return personality_data
+    
+    def delete_personality(self, personality_id: str) -> bool:
+        """Delete a custom personality (cannot delete defaults)"""
+        default_personalities = ["default", "developer", "creative", "analytical", "casual",
+                                 "asian", "middle_eastern", "european", "latin_american", "african"]
+        if personality_id in default_personalities:
+            raise ValueError(f"Cannot delete default personality: {personality_id}")
         
         personality_file = self.personalities_dir / f"{personality_id}.json"
-        with open(personality_file, 'w') as f:
-            json.dump(personality, f, indent=2)
-        
-        return personality
+        if personality_file.exists():
+            personality_file.unlink()
+            print(f"[DEBUG] Deleted personality: {personality_id}")
+            return True
+        return False
