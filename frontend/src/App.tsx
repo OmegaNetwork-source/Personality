@@ -32,7 +32,14 @@ function App() {
   const fetchPersonalities = async () => {
     try {
       console.log('🔍 Fetching personalities from:', `${API_URL}/personalities`)
-      const response = await fetch(`${API_URL}/personalities`)
+      
+      const response = await fetch(`${API_URL}/personalities`, {
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/json',
+        },
+      })
       
       console.log('📡 Response status:', response.status, response.statusText)
       console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
@@ -47,7 +54,7 @@ function App() {
       console.log('✅ Successfully loaded personalities:', data.length, 'personalities')
       console.log('📋 Personality IDs:', data.map((p: any) => p.id))
       setPersonalities(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to fetch personalities:', error)
       console.error('🔗 API URL being used:', API_URL)
       console.error('💡 Check if:')
@@ -55,6 +62,10 @@ function App() {
       console.error('   2. API URL is correct:', API_URL)
       console.error('   3. CORS is configured correctly')
       console.error('   4. Network connection is working')
+      console.error('   5. ngrok tunnel is active')
+      
+      // Set empty array on error so UI doesn't break
+      setPersonalities([])
     }
   }
 
