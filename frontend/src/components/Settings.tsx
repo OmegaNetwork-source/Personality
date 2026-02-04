@@ -50,6 +50,11 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
     if (personalities.length > 0 && !personalities.find(p => p.id === aiForm.personality)) {
       setAIForm({ ...aiForm, personality: personalities[0].id })
     }
+    // Debug logging
+    console.log('🔧 Settings - Personalities received:', personalities.length)
+    if (personalities.length === 0) {
+      console.warn('⚠️ No personalities loaded! Check console for fetch errors.')
+    }
   }, [personalities])
 
   const handleSave = () => {
@@ -116,7 +121,22 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                   )}
                 </select>
                 {personalities.length === 0 && (
-                  <small className="form-hint">Make sure the backend is running and accessible.</small>
+                  <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '8px' }}>
+                    <small style={{ color: '#ffc107', display: 'block', marginBottom: '4px' }}>
+                      ⚠️ No personalities loaded
+                    </small>
+                    <small className="form-hint" style={{ display: 'block', marginTop: '4px' }}>
+                      Check the browser console (F12) for errors. Make sure:
+                      <br />• Backend server is running
+                      <br />• API URL is correct
+                      <br />• CORS is configured
+                    </small>
+                  </div>
+                )}
+                {personalities.length > 0 && (
+                  <small className="form-hint" style={{ color: '#4caf50' }}>
+                    ✅ {personalities.length} personality{personalities.length !== 1 ? 'ies' : ''} loaded
+                  </small>
                 )}
               </div>
 

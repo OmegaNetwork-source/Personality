@@ -64,9 +64,23 @@ class PersonalityService:
     def get_all_personalities(self) -> List[Dict[str, Any]]:
         """Get all available personalities"""
         personalities = []
-        for file in self.personalities_dir.glob("*.json"):
-            with open(file, 'r') as f:
-                personalities.append(json.load(f))
+        print(f"[DEBUG] Looking for personalities in: {self.personalities_dir.absolute()}")
+        print(f"[DEBUG] Directory exists: {self.personalities_dir.exists()}")
+        
+        json_files = list(self.personalities_dir.glob("*.json"))
+        print(f"[DEBUG] Found {len(json_files)} JSON files: {[f.name for f in json_files]}")
+        
+        for file in json_files:
+            try:
+                with open(file, 'r') as f:
+                    personality_data = json.load(f)
+                    personalities.append(personality_data)
+                    print(f"[DEBUG] Loaded personality: {personality_data.get('id', 'unknown')} - {personality_data.get('name', 'unnamed')}")
+            except Exception as e:
+                print(f"[ERROR] Failed to load {file.name}: {e}")
+                continue
+        
+        print(f"[DEBUG] Returning {len(personalities)} personalities")
         return personalities
     
     def get_personality(self, personality_id: str) -> Dict[str, Any]:

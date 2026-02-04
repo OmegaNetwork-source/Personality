@@ -31,11 +31,30 @@ function App() {
 
   const fetchPersonalities = async () => {
     try {
+      console.log('🔍 Fetching personalities from:', `${API_URL}/personalities`)
       const response = await fetch(`${API_URL}/personalities`)
+      
+      console.log('📡 Response status:', response.status, response.statusText)
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Response not OK:', response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+      
       const data = await response.json()
+      console.log('✅ Successfully loaded personalities:', data.length, 'personalities')
+      console.log('📋 Personality IDs:', data.map((p: any) => p.id))
       setPersonalities(data)
     } catch (error) {
-      console.error('Failed to fetch personalities:', error)
+      console.error('❌ Failed to fetch personalities:', error)
+      console.error('🔗 API URL being used:', API_URL)
+      console.error('💡 Check if:')
+      console.error('   1. Backend server is running')
+      console.error('   2. API URL is correct:', API_URL)
+      console.error('   3. CORS is configured correctly')
+      console.error('   4. Network connection is working')
     }
   }
 

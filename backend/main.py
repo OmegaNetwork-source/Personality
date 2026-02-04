@@ -91,7 +91,16 @@ async def root():
 @app.get("/personalities")
 async def get_personalities():
     """Get all available personalities"""
-    return personality_service.get_all_personalities()
+    try:
+        personalities = personality_service.get_all_personalities()
+        print(f"[DEBUG] Returning {len(personalities)} personalities")
+        print(f"[DEBUG] Personality IDs: {[p.get('id', 'unknown') for p in personalities]}")
+        return personalities
+    except Exception as e:
+        print(f"[ERROR] Failed to get personalities: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to load personalities: {str(e)}")
 
 @app.get("/personalities/{personality_id}")
 async def get_personality(personality_id: str):
