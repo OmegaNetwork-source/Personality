@@ -92,13 +92,13 @@
 }
 
 .input-action-btn.send-btn {
-  background: #4a4a4a;
+  background: #3a3a3a;
   color: white;
   border: none;
 }
 
 [data-theme="light"] .input-action-btn.send-btn {
-  background: #e5e5e5;
+  background: #d8d8d8;
   color: #1a1a1a;
 }
 
@@ -209,13 +209,13 @@
 }
 
 .message.user .message-content {
-  background: #4a4a4a;
+  background: #3a3a3a;
   color: white;
   border-radius: 18px 18px 4px 18px;
 }
 
 [data-theme="light"] .message.user .message-content {
-  background: #e5e5e5;
+  background: #d8d8d8;
   color: #1a1a1a;
 }
 
@@ -345,7 +345,7 @@
   height: 40px;
   border: none;
   border-radius: 50%;
-  background: #4a4a4a;
+  background: #3a3a3a;
   color: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -353,7 +353,7 @@
 }
 
 [data-theme="light"] .send-button {
-  background: #e5e5e5;
+  background: #d8d8d8;
   color: #1a1a1a;
 }
 
