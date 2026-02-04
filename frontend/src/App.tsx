@@ -79,6 +79,10 @@ function App() {
     setShowSettings(false)
   }
 
+  const handlePersonalityUpdate = () => {
+    fetchPersonalities()
+  }
+
   return (
     <ThemeProvider>
       <Router>
@@ -99,6 +103,7 @@ function App() {
               personalities={personalities}
               onSave={handleSettingsSave}
               onClose={() => setShowSettings(false)}
+              onPersonalityUpdate={handlePersonalityUpdate}
             />
           )}
         </div>

@@ -252,6 +252,13 @@ Provide the refactored code with explanations of improvements."""
         # Build enhanced prompt with cultural context
         prompt_parts = []
         
+        # Add strong language instruction at the top if preferred language is set
+        if preferred_language:
+            language_info = personality.get("language", {})
+            primary_langs = language_info.get("primary", [])
+            if preferred_language in primary_langs:
+                prompt_parts.append(f"IMPORTANT: The user has selected {preferred_language} as their preferred language. You MUST respond primarily in {preferred_language} (at least 80-90% of your message should be in {preferred_language}). Only use other languages for brief cultural expressions or when absolutely necessary.")
+        
         if system_prompt:
             prompt_parts.append(system_prompt)
         
@@ -267,17 +274,21 @@ Provide the refactored code with explanations of improvements."""
             code_switching = language_info.get("code_switching", False)
             
             if primary_langs:
-                # If user specified a preferred language, prioritize it
+                # If user specified a preferred language, prioritize it strongly
                 if preferred_language and preferred_language in primary_langs:
-                    lang_text = f"Languages: Your PRIMARY language for communication is {preferred_language}. You can also communicate in {', '.join([l for l in primary_langs if l != preferred_language])} when appropriate."
+                    lang_text = f"CRITICAL LANGUAGE INSTRUCTION: You MUST speak PRIMARILY or EXCLUSIVELY in {preferred_language}. At least 80-90% of your responses should be in {preferred_language}. Only use other languages ({', '.join([l for l in primary_langs if l != preferred_language])}) for brief phrases, cultural expressions, or when absolutely necessary for clarity. Your default and primary mode of communication is {preferred_language}."
                 else:
                     lang_text = f"Languages: You can communicate in {', '.join(primary_langs)}"
-                
-                if code_switching:
-                    lang_text += ". You naturally code-switch between languages when appropriate."
-                if preference:
+                    if code_switching:
+                        lang_text += ". You naturally code-switch between languages when appropriate."
+                if not preferred_language and preference:
                     lang_text += f" {preference}"
                 prompt_parts.append(lang_text)
+        
+        # Add region if specified
+        region = personality.get("region", "")
+        if region:
+            prompt_parts.append(f"Region: {region}")
         
         # Add cultural context
         cultural_context = personality.get("cultural_context", {})

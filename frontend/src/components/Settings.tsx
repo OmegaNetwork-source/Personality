@@ -18,9 +18,10 @@ interface Props {
   personalities: any[]
   onSave: (userProfile: any, aiProfile: AIProfile) => void
   onClose: () => void
+  onPersonalityUpdate?: () => void
 }
 
-export default function Settings({ userProfile, aiProfile, personalities, onSave, onClose }: Props) {
+export default function Settings({ userProfile, aiProfile, personalities, onSave, onClose, onPersonalityUpdate }: Props) {
   const [activeTab, setActiveTab] = useState<'config' | 'editor'>('config')
   const [aiForm, setAIForm] = useState<AIProfile>({
     personality: aiProfile?.personality || 'default',
@@ -58,19 +59,11 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
   }
 
   const handlePersonalityUpdate = async () => {
-    // Refresh personalities list
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
-      const response = await fetch(`${API_URL}/personalities`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        // Trigger parent to refresh
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error('Failed to refresh personalities:', error)
+    if (onPersonalityUpdate) {
+      onPersonalityUpdate()
+    } else {
+      // Fallback: reload page
+      window.location.reload()
     }
   }
 
