@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send } from 'lucide-react'
+import { Send, Paperclip } from 'lucide-react'
 import './Chat.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
@@ -15,6 +15,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -23,6 +24,18 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Handle file upload - you can add file processing logic here
+      console.log('File selected:', file.name)
+    }
+  }
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return
@@ -75,40 +88,85 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     }
   }
 
+  const hasMessages = messages.length > 0
+
   return (
     <div className="chat-container">
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="welcome-message">
-            <h2>Welcome to AI Personality Platform</h2>
-            <p>Start a conversation with your AI assistant. Configure your profile and AI personality in Settings.</p>
+      {!hasMessages ? (
+        <div className="chat-welcome-screen">
+          <div className="welcome-content">
+            <h1 className="welcome-title">What can I help with?</h1>
+            <div className="welcome-input-container">
+              <input
+                className="welcome-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="Ask anything"
+                disabled={loading}
+              />
+              <div className="welcome-input-actions">
+                <button className="input-action-btn" onClick={handleFileUpload} title="Attach file">
+                  <Paperclip size={18} />
+                  <span>Attach</span>
+                </button>
+                <button className="input-action-btn send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>
+                  <Send size={18} />
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`message ${msg.role}`}>
-            <div className="message-content">{msg.content}</div>
+        </div>
+      ) : (
+        <>
+          <div className="chat-messages">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`message-wrapper ${msg.role}`}>
+                <div className={`message ${msg.role}`}>
+                  <div className="message-content">{msg.content}</div>
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="message-wrapper assistant">
+                <div className="message assistant">
+                  <div className="message-content">
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        ))}
-        {loading && (
-          <div className="message assistant">
-            <div className="message-content">Thinking...</div>
+          <div className="chat-input-container">
+            <button className="attach-button" onClick={handleFileUpload} title="Attach file">
+              <Paperclip size={20} />
+            </button>
+            <input
+              className="chat-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              placeholder="Ask anything"
+              disabled={loading}
+            />
+            <button className="send-button" onClick={sendMessage} disabled={loading || !input.trim()}>
+              <Send size={20} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+              multiple
+            />
           </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="chat-input-container">
-        <input
-          className="chat-input"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type your message..."
-          disabled={loading}
-        />
-        <button className="send-button" onClick={sendMessage} disabled={loading}>
-          <Send size={20} />
-        </button>
-      </div>
+        </>
+      )}
     </div>
   )
 }

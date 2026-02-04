@@ -5,6 +5,8 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
+  width: 100%;
+  overflow: hidden;
 }
 
 .content {

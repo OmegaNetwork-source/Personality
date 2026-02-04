@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Chat from './components/Chat'
-import ImageGen from './components/ImageGen'
-import VideoGen from './components/VideoGen'
-import CodeAssistant from './components/CodeAssistant'
 import Navbar from './components/Navbar'
-import PersonalitySelector from './components/PersonalitySelector'
 import Settings from './components/Settings'
 import './App.css'
 
@@ -62,21 +58,9 @@ function App() {
             aiProfile={aiProfile}
             onSettingsClick={() => setShowSettings(true)}
           />
-          <PersonalitySelector
-            personalities={personalities}
-            selected={selectedPersonality}
-            onSelect={(id) => {
-              setSelectedPersonality(id)
-              localStorage.setItem('selectedPersonality', id)
-            }}
-            aiProfile={aiProfile}
-          />
           <Routes>
             <Route path="/" element={<Chat personality={selectedPersonality} userProfile={userProfile} aiProfile={aiProfile} />} />
             <Route path="/chat" element={<Chat personality={selectedPersonality} userProfile={userProfile} aiProfile={aiProfile} />} />
-            <Route path="/code" element={<CodeAssistant personality={selectedPersonality} />} />
-            <Route path="/image" element={<ImageGen />} />
-            <Route path="/video" element={<VideoGen />} />
           </Routes>
           {showSettings && (
             <Settings

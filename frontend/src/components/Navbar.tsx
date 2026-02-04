@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MessageSquare, Code, Image, Video, Moon, Sun, User, Settings } from 'lucide-react'
+import { Moon, Sun, User, Settings } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import './Navbar.css'
 
@@ -19,22 +19,6 @@ export default function Navbar({ userProfile, aiProfile, onSettingsClick }: Prop
           <span className="logo-text">AI Personality Platform</span>
         </Link>
         <div className="nav-links">
-          <Link to="/chat" className="nav-link">
-            <MessageSquare size={20} />
-            <span>Chat</span>
-          </Link>
-          <Link to="/code" className="nav-link">
-            <Code size={20} />
-            <span>Code</span>
-          </Link>
-          <Link to="/image" className="nav-link">
-            <Image size={20} />
-            <span>Image</span>
-          </Link>
-          <Link to="/video" className="nav-link">
-            <Video size={20} />
-            <span>Video</span>
-          </Link>
           {userProfile && (
             <div className="nav-user-info">
               <User size={18} />
