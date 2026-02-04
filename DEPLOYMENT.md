@@ -1,160 +1,161 @@
-# Deployment Guide
+# Deployment Guide - CharacterOS
 
-## RunPod Deployment (Recommended for High-End Server)
+This guide will help you deploy CharacterOS to production for showcasing.
 
-### Step 1: Create RunPod Pod
+## Architecture Overview
 
-1. Go to [RunPod](https://www.runpod.io)
-2. Create a new pod
-3. Select GPU:
-   - **Budget**: RTX 3090 (24GB) - $0.29/hour
-   - **Recommended**: RTX 4090 (24GB) - $0.39/hour
-   - **High-End**: A100 (40GB+) - $1.29/hour
-4. Storage: 100GB+ (for models)
-5. Enable public network endpoint
+- **Frontend**: Deploy to Vercel (free, easy, fast)
+- **Backend**: Keep running on RunPod (your GPU server)
+- **Connection**: Frontend connects to backend via ngrok or RunPod proxy URL
 
-### Step 2: Setup
+## Step 1: Deploy Frontend to Vercel
 
-SSH into your pod and run:
+### Option A: Deploy via GitHub (Recommended)
+
+1. **Push your code to GitHub** (if not already done):
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Go to Vercel**:
+   - Visit https://vercel.com
+   - Sign up/Login with GitHub
+   - Click "Add New Project"
+   - Import your GitHub repository: `OmegaNetwork-source/Personality`
+
+3. **Configure Vercel Project**:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend` (IMPORTANT!)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+   - **Install Command**: `npm install`
+
+4. **Set Environment Variables**:
+   - Go to Project Settings → Environment Variables
+   - Add:
+     ```
+     VITE_API_URL = https://your-ngrok-url.ngrok-free.dev
+     ```
+   - Replace with your actual ngrok URL or RunPod proxy URL
+
+5. **Deploy**:
+   - Click "Deploy"
+   - Wait for build to complete
+   - Your site will be live at `your-project.vercel.app`
+
+### Option B: Deploy via Vercel CLI
 
 ```bash
-# Clone repository
-git clone <your-repo-url>
-cd "Personality bot"
+# Install Vercel CLI
+npm i -g vercel
 
-# Make setup script executable
-chmod +x runpod/setup.sh
+# Navigate to frontend directory
+cd frontend
 
-# Run setup
-./runpod/setup.sh
+# Deploy
+vercel
+
+# Follow prompts:
+# - Set up and deploy? Yes
+# - Which scope? Your account
+# - Link to existing project? No (first time)
+# - Project name? characteros (or your choice)
+# - Directory? ./
+# - Override settings? No
+
+# Set environment variable
+vercel env add VITE_API_URL
+# Enter your ngrok URL when prompted
 ```
 
-### Step 3: Configure Network Endpoints
+## Step 2: Keep Backend Running on RunPod
 
-In RunPod dashboard:
-1. Go to your pod
-2. Click "Network" tab
-3. Create endpoints:
-   - **Backend API**: Port 8000 (Public)
-   - **Ollama**: Port 11434 (Optional, can be internal)
-   - **Stable Diffusion**: Port 7860 (Optional)
-   - **Video Gen**: Port 7861 (Optional)
+### Make sure your backend is running:
 
-### Step 4: Update Frontend
-
-Update `frontend/src/App.tsx` with your RunPod endpoint:
-
-```typescript
-const API_URL = 'https://your-pod-id.runpod.net:8000'
-```
-
-### Step 5: Test
-
-Visit your RunPod endpoint:
-- API: `https://your-pod-id.runpod.net:8000`
-- Docs: `https://your-pod-id.runpod.net:8000/docs`
-
-## Alternative: VPS Deployment
-
-### DigitalOcean / Linode / Vultr
-
-1. Create VPS (8GB+ RAM, 4+ cores)
-2. Install Docker:
 ```bash
-curl -fsSL https://get.docker.com | sh
+# SSH into your RunPod or use web terminal
+
+# Check if backend is running
+ps aux | grep uvicorn
+
+# If not running, start it:
+cd /workspace/Personality/backend
+screen -S backend
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
+# Press Ctrl+A then D to detach
 ```
 
-3. Clone and deploy:
+### Keep ngrok running:
+
 ```bash
-git clone <your-repo-url>
-cd "Personality bot"
-docker-compose -f runpod/docker-compose.yml up -d
+# Check if ngrok is running
+ps aux | grep ngrok
+
+# If not, start it:
+screen -S ngrok
+ngrok http 8000
+# Press Ctrl+A then D to detach
+
+# Get your ngrok URL
+curl http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*' | head -1
 ```
 
-4. Configure firewall:
-```bash
-ufw allow 8000/tcp
-ufw allow 11434/tcp
-ufw allow 7860/tcp
-```
+### Alternative: Use RunPod Proxy URL
 
-## Desktop App Distribution
+If you have RunPod proxy enabled, you can use that instead of ngrok:
+- Format: `https://your-pod-id-8000.proxy.runpod.net`
+- Set this as `VITE_API_URL` in Vercel
 
-### Build for Windows
-```bash
-cd desktop
-npm run build
-# Output in desktop/release/
-```
+## Step 3: Update Environment Variables
 
-### Build for Mac
-```bash
-cd desktop
-npm run build
-# Output in desktop/release/
-```
+After deployment, update Vercel environment variables if your ngrok URL changes:
 
-### Build for Linux
-```bash
-cd desktop
-npm run build
-# Output in desktop/release/
-```
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Update `VITE_API_URL` with your current backend URL
+3. Redeploy (Vercel will auto-redeploy on git push, or manually trigger)
 
-## Production Considerations
+## Step 4: Custom Domain (Optional)
 
-### Security
-- Add API authentication
-- Use HTTPS (Let's Encrypt)
-- Rate limiting
-- Input validation
+1. Go to Vercel Dashboard → Your Project → Settings → Domains
+2. Add your custom domain (e.g., `characteros.com`)
+3. Follow DNS configuration instructions
+4. Wait for SSL certificate (automatic)
 
-### Performance
-- Use CDN for frontend
-- Enable caching
-- Load balancing for high traffic
-- Database for conversation history
+## Troubleshooting
 
-### Monitoring
-- Set up logging
-- Monitor GPU usage
-- Track costs
-- Alert on errors
+### Frontend can't connect to backend:
+- ✅ Check ngrok is running: `curl http://localhost:4040/api/tunnels`
+- ✅ Check backend is running: `curl http://localhost:8000/`
+- ✅ Verify `VITE_API_URL` in Vercel matches your ngrok URL
+- ✅ Check CORS settings in backend (should allow all origins)
 
-## Cost Optimization
+### Build fails on Vercel:
+- ✅ Make sure `Root Directory` is set to `frontend` in Vercel settings
+- ✅ Check that `package.json` exists in `frontend/` directory
+- ✅ Verify all dependencies are in `package.json`
 
-### RunPod
-- Use spot instances (50-70% cheaper)
-- Start/stop pods when not in use
-- Monitor GPU hours
-- Use smaller models when possible
+### ngrok URL changes:
+- ngrok free tier gives you a new URL each time you restart
+- Update `VITE_API_URL` in Vercel when it changes
+- Or upgrade to ngrok paid plan for static URL
 
-### VPS
-- Choose right-sized instances
-- Use reserved instances for 24/7
-- Monitor resource usage
-- Scale down when possible
+## Quick Deploy Checklist
 
-## Scaling
+- [ ] Code pushed to GitHub
+- [ ] Vercel project created and linked to GitHub
+- [ ] Root directory set to `frontend` in Vercel
+- [ ] Environment variable `VITE_API_URL` set in Vercel
+- [ ] Backend running on RunPod
+- [ ] ngrok running (or RunPod proxy configured)
+- [ ] Test the deployed site
+- [ ] Share your live URL! 🚀
 
-### Horizontal Scaling
-- Multiple backend instances
-- Load balancer
-- Shared model storage
+## Production URLs
 
-### Vertical Scaling
-- Upgrade GPU
-- More RAM
-- Faster storage (NVMe)
+After deployment, you'll have:
+- **Frontend**: `https://your-project.vercel.app`
+- **Backend**: `https://your-ngrok-url.ngrok-free.dev` (or RunPod proxy)
 
-## Backup
-
-### Models
-- Backup model files
-- Use RunPod volumes
-- Regular snapshots
-
-### Configuration
-- Version control
-- Environment variable backups
-- Document changes
+Your frontend will automatically connect to your backend using the `VITE_API_URL` environment variable.
