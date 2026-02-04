@@ -16,11 +16,24 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [loading, setLoading] = useState(false)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number | null>(null)
-  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load voices when component mounts
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      // Load voices (some browsers need this)
+      window.speechSynthesis.getVoices()
+      
+      // Some browsers load voices asynchronously
+      const loadVoices = () => {
+        window.speechSynthesis.getVoices()
+      }
+      window.speechSynthesis.onvoiceschanged = loadVoices
+    }
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -73,63 +86,55 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     if (playingIndex === index) {
       // If clicking the same message, stop playing
       setPlayingIndex(null)
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
       return
     }
 
     setPlayingIndex(index)
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
-      
-      // Call voice API
-      const response = await fetch(`${API_URL}/api/voice`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify({
-          text: content,
-          personality: personality
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to generate voice')
+      // Use browser's built-in Web Speech API (free, no API key needed)
+      if ('speechSynthesis' in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel()
+        
+        // Create speech utterance
+        const utterance = new SpeechSynthesisUtterance(content)
+        
+        // Use default robot voice settings
+        utterance.rate = 1.0  // Normal speed
+        utterance.pitch = 1.0  // Normal pitch
+        utterance.volume = 1.0  // Full volume
+        
+        // Try to get a robot-like voice if available
+        const voices = window.speechSynthesis.getVoices()
+        const robotVoice = voices.find(voice => 
+          voice.name.toLowerCase().includes('robot') ||
+          voice.name.toLowerCase().includes('zira') ||
+          voice.name.toLowerCase().includes('samantha')
+        )
+        if (robotVoice) {
+          utterance.voice = robotVoice
+        }
+        
+        utterance.onend = () => {
+          setPlayingIndex(null)
+        }
+        
+        utterance.onerror = () => {
+          setPlayingIndex(null)
+        }
+        
+        window.speechSynthesis.speak(utterance)
+      } else {
+        throw new Error('Speech synthesis not supported in this browser')
       }
-
-      const data = await response.json()
-      
-      // Decode base64 audio
-      const audioData = atob(data.audio)
-      const audioArray = new Uint8Array(audioData.length)
-      for (let i = 0; i < audioData.length; i++) {
-        audioArray[i] = audioData.charCodeAt(i)
-      }
-      
-      // Create audio blob and play
-      const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' })
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
-      
-      audio.onended = () => {
-        setPlayingIndex(null)
-        setAudioRef(null)
-        URL.revokeObjectURL(audioUrl)
-      }
-      
-      audio.onerror = () => {
-        setPlayingIndex(null)
-        setAudioRef(null)
-        URL.revokeObjectURL(audioUrl)
-      }
-      
-      setAudioRef(audio)
-      await audio.play()
     } catch (error) {
       console.error('Failed to play audio:', error)
       setPlayingIndex(null)
-      alert('Failed to play audio. Make sure the backend is running and OpenAI API key is configured.')
+      alert('Speech synthesis not available. Please use a modern browser.')
     }
   }
 
