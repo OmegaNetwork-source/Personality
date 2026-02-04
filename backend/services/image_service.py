@@ -54,12 +54,18 @@ class ImageService:
             if seed is not None:
                 payload["seed"] = seed
             
-            async with httpx.AsyncClient(timeout=300.0) as client:
+            async with httpx.AsyncClient(timeout=300.0, headers={'ngrok-skip-browser-warning': 'true'}) as client:
                 # Try Automatic1111 API first
                 try:
+                    # First verify service is accessible
+                    health_check = await client.get(f"{self.base_url}/", timeout=10.0)
+                    health_check.raise_for_status()
+                    
+                    # Now make the generation request
                     response = await client.post(
                         f"{self.base_url}/sdapi/v1/txt2img",
-                        json=payload
+                        json=payload,
+                        timeout=300.0
                     )
                     response.raise_for_status()
                     result = response.json()
@@ -72,8 +78,20 @@ class ImageService:
                             "seed": result.get("seed", seed),
                             "info": result.get("info", "")
                         }
-                except:
-                    # Fallback to ComfyUI API
+                    else:
+                        raise Exception("Stable Diffusion returned no images in response")
+                except httpx.TimeoutException:
+                    raise Exception(f"Image generation timed out after 5 minutes. Stable Diffusion may be slow or unresponsive at {self.base_url}")
+                except httpx.RequestError as e:
+                    raise Exception(f"Cannot connect to Stable Diffusion at {self.base_url}. Is it running? Error: {str(e)}")
+                except httpx.HTTPStatusError as e:
+                    error_text = e.response.text[:500] if hasattr(e.response, 'text') else str(e)
+                    raise Exception(f"Stable Diffusion API error {e.response.status_code}: {error_text}")
+                except Exception as e:
+                    # Re-raise our custom exceptions
+                    if "timed out" in str(e) or "Cannot connect" in str(e) or "API error" in str(e):
+                        raise
+                    # Fallback to ComfyUI API (if implemented)
                     return await self._generate_comfyui(prompt, negative_prompt, width, height, steps, guidance_scale, seed)
         
         except Exception as e:
