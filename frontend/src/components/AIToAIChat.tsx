@@ -15,7 +15,7 @@ export default function AIToAIChat({ personalities }: Props) {
   const [loading, setLoading] = useState(false)
   const [loadingFor, setLoadingFor] = useState<'ai1' | 'ai2' | null>(null)
   const [autoContinue, setAutoContinue] = useState(true) // Enabled by default
-  const [maxTurns, setMaxTurns] = useState(20) // Limit to prevent infinite loops
+  const [maxTurns, setMaxTurns] = useState(200) // Limit to prevent infinite loops
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {

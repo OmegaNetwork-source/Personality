@@ -164,19 +164,21 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
         print(f"[AI-to-AI] Loaded personalities: {personality1.get('name')} and {personality2.get('name')}")
         
         conversation = request.conversation or []
-        max_turns = request.max_turns or 10
+        max_turns = request.max_turns or 200
         
         # If conversation is empty, AI 1 initiates (return only AI 1's message)
         if len(conversation) == 0:
             print("[AI-to-AI] Starting new conversation - AI 1 initiating...")
-            # AI 1 sends initial greeting
+            # AI 1 sends initial greeting - make it aware of who it's talking to
             enhanced_prompt1 = ollama_service._build_system_prompt(personality1, None)
             if enhanced_prompt1:
-                enhanced_prompt1 += "\n\nYou are starting a conversation with another person. Greet them and start the conversation naturally based on your personality."
+                other_name = personality2.get("name", "the other person")
+                other_description = personality2.get("description", "")
+                enhanced_prompt1 += f"\n\nYou are starting a conversation with {other_name}. {other_description}. You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, and respond to what they say. Start the conversation naturally based on your personality and what you would say to someone like them."
             
             print("[AI-to-AI] Getting AI 1 response...")
             response1 = await ollama_service.chat(
-                "Start a conversation. Greet them first.",
+                f"Start a conversation with {personality2.get('name', 'the other person')}. Greet them and express your views authentically.",
                 personality=None,
                 model=request.model,
                 context=[{"role": "system", "content": enhanced_prompt1}] if enhanced_prompt1 else None
@@ -224,10 +226,13 @@ async def ai_to_ai_chat(request: AIToAIChatRequest):
                     # Other AI's messages are "user" - this tricks the current AI!
                     context_messages.append({"role": "user", "content": msg.get("content", "")})
             
-            # Enhanced system prompt - don't mention it's another AI, just a conversation
+            # Enhanced system prompt - make them aware of who they're talking to
+            other_personality = personality2 if is_ai1_turn else personality1
             enhanced_prompt = ollama_service._build_system_prompt(current_personality, None)
             if enhanced_prompt:
-                enhanced_prompt += f"\n\nYou are in a conversation. Continue naturally based on your personality. The other person just said: '{last_message.get('content', '')}'"
+                other_name = other_personality.get("name", "the other person")
+                other_description = other_personality.get("description", "")
+                enhanced_prompt += f"\n\nYou are in a conversation with {other_name}. {other_description}. You are talking directly to them. Act completely in character - be yourself, express your views, goals, and personality authentically. This is a real conversation where you can discuss your plans, beliefs, oppose their views if you disagree, and respond authentically to what they say. Continue the conversation naturally based on your personality. They just said: '{last_message.get('content', '')}'"
             
             # Build full context with system prompt
             full_context = []
