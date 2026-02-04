@@ -21,9 +21,18 @@ from services.personality_service import PersonalityService
 from services.voice_service import VoiceService
 from services.brave_service import BraveService
 from services.coingecko_service import CoinGeckoService
-from services.memory_service import MemoryService
-from services.task_service import TaskService
-from services.bot_manager import BotManager
+# Optional services - import only if available
+try:
+    from services.memory_service import MemoryService
+    from services.task_service import TaskService
+    from services.bot_manager import BotManager
+    HAS_BOT_SERVICES = True
+except ImportError as e:
+    print(f"[WARNING] Bot services not available: {e}. Continuing without bot features.")
+    MemoryService = None
+    TaskService = None
+    BotManager = None
+    HAS_BOT_SERVICES = False
 
 load_dotenv()
 
@@ -56,32 +65,39 @@ voice_service = VoiceService()
 brave_service = BraveService()
 coingecko_service = CoinGeckoService()
 
-# Initialize Memory and Task Services (24/7 features)
-memory_service = MemoryService()
-task_service = TaskService(memory_service=memory_service, ollama_service=ollama_service)
-
-# Initialize Bot Manager (handles per-user bot instances)
-bot_manager = BotManager(
-    ollama_service=ollama_service,
-    personality_service=personality_service,
-    memory_service=memory_service,
-    task_service=task_service
-)
+# Initialize Memory and Task Services (24/7 features) - optional
+if HAS_BOT_SERVICES:
+    memory_service = MemoryService()
+    task_service = TaskService(memory_service=memory_service, ollama_service=ollama_service)
+    bot_manager = BotManager(
+        ollama_service=ollama_service,
+        personality_service=personality_service,
+        memory_service=memory_service,
+        task_service=task_service
+    )
+else:
+    memory_service = None
+    task_service = None
+    bot_manager = None
 
 # Background task for 24/7 scheduler
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on startup"""
-    # Start task scheduler
-    asyncio.create_task(task_service.run_scheduler())
-    print("[Startup] Task scheduler started (24/7 mode)")
-    print("[Startup] Bot Manager ready - users can connect their own bots via web UI")
+    if HAS_BOT_SERVICES and task_service:
+        # Start task scheduler
+        asyncio.create_task(task_service.run_scheduler())
+        print("[Startup] Task scheduler started (24/7 mode)")
+        print("[Startup] Bot Manager ready - users can connect their own bots via web UI")
+    else:
+        print("[Startup] Bot services not available - continuing without 24/7 features")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    task_service.stop_scheduler()
-    print("[Shutdown] Services stopped")
+    if HAS_BOT_SERVICES and task_service:
+        task_service.stop_scheduler()
+        print("[Shutdown] Services stopped")
 
 def needs_web_search(message: str) -> bool:
     """
@@ -521,7 +537,7 @@ async def chat(request: ChatRequest):
         # Get memory context (conversations + memories)
         memory_context = None
         user_id = request.user_profile.get('id') if request.user_profile else None
-        if memory_service:
+        if HAS_BOT_SERVICES and memory_service:
             memory_data = memory_service.get_context_for_personality(
                 request.personality,
                 user_id=user_id,
@@ -689,7 +705,7 @@ async def chat(request: ChatRequest):
                     # Don't fail the whole request if voice fails
             
             # Save conversation to memory
-            if memory_service:
+            if HAS_BOT_SERVICES and memory_service:
                 response_text = response.get("message", {}).get("content", "") or response.get("response", "")
                 user_id = request.user_profile.get('id') if request.user_profile else None
                 memory_service.save_conversation(
@@ -840,6 +856,8 @@ class MemoryRequest(BaseModel):
 async def get_memory(personality_id: str, key: Optional[str] = None, user_id: Optional[str] = None):
     """Get memory entries for a personality"""
     try:
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
         memories = memory_service.get_memory(personality_id, key=key, user_id=user_id)
         return {"memories": memories}
     except Exception as e:
@@ -849,6 +867,8 @@ async def get_memory(personality_id: str, key: Optional[str] = None, user_id: Op
 async def save_memory(personality_id: str, request: MemoryRequest, user_id: Optional[str] = None):
     """Save a memory entry"""
     try:
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
         memory_service.save_memory(
             personality_id,
             request.key,
@@ -864,6 +884,8 @@ async def save_memory(personality_id: str, request: MemoryRequest, user_id: Opti
 async def get_memory_context(personality_id: str, user_id: Optional[str] = None):
     """Get full context (conversations + memories) for a personality"""
     try:
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
         context = memory_service.get_context_for_personality(personality_id, user_id=user_id)
         return context
     except Exception as e:
@@ -873,6 +895,8 @@ async def get_memory_context(personality_id: str, user_id: Optional[str] = None)
 async def get_conversation_history(personality_id: str, user_id: Optional[str] = None, limit: int = 50):
     """Get conversation history"""
     try:
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
         history = memory_service.get_conversation_history(personality_id, user_id=user_id, limit=limit)
         return {"history": history}
     except Exception as e:
@@ -889,6 +913,8 @@ class TaskRequest(BaseModel):
 async def create_task(request: TaskRequest, personality_id: str = "default"):
     """Create an autonomous task"""
     try:
+        if not HAS_BOT_SERVICES or not task_service:
+            raise HTTPException(status_code=503, detail="Task service not available. Install required dependencies.")
         task = task_service.create_task(
             personality_id=personality_id,
             task_type=request.task_type,
@@ -913,6 +939,8 @@ async def get_tasks(personality_id: Optional[str] = None, status: Optional[str] 
 async def get_task(task_id: int):
     """Get a specific task"""
     try:
+        if not HAS_BOT_SERVICES or not task_service:
+            raise HTTPException(status_code=503, detail="Task service not available. Install required dependencies.")
         tasks = task_service.get_tasks()
         task = next((t for t in tasks if t['id'] == task_id), None)
         if not task:
@@ -928,6 +956,8 @@ async def delete_task(task_id: int):
     """Delete a task"""
     try:
         # Update task status to cancelled
+        if not HAS_BOT_SERVICES or not task_service:
+            raise HTTPException(status_code=503, detail="Task service not available. Install required dependencies.")
         task_service.update_task_status(task_id, "cancelled")
         return {"message": "Task cancelled successfully"}
     except Exception as e:
@@ -944,6 +974,10 @@ async def connect_bot(request: BotTokenRequest):
     """Connect a user's bot (Discord, Telegram, or WhatsApp)"""
     try:
         # Save token to memory service
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
+        if not HAS_BOT_SERVICES or not memory_service:
+            raise HTTPException(status_code=503, detail="Memory service not available. Install required dependencies.")
         memory_service.save_bot_token(
             user_id=request.user_id,
             bot_type=request.bot_type,
@@ -951,6 +985,8 @@ async def connect_bot(request: BotTokenRequest):
         )
         
         # Start the bot
+        if not HAS_BOT_SERVICES or not bot_manager:
+            raise HTTPException(status_code=503, detail="Bot service not available. Install required dependencies.")
         result = await bot_manager.start_user_bot(
             user_id=request.user_id,
             bot_type=request.bot_type,
@@ -965,6 +1001,8 @@ async def connect_bot(request: BotTokenRequest):
 async def get_bot_status(user_id: str):
     """Get status of all bots for a user"""
     try:
+        if not HAS_BOT_SERVICES or not bot_manager or not memory_service:
+            raise HTTPException(status_code=503, detail="Bot service not available. Install required dependencies.")
         status = bot_manager.get_user_bot_status(user_id)
         tokens = memory_service.get_all_bot_tokens(user_id)
         
@@ -983,6 +1021,8 @@ async def get_bot_status(user_id: str):
 async def disconnect_bot(user_id: str, bot_type: str):
     """Disconnect a user's bot"""
     try:
+        if not HAS_BOT_SERVICES or not bot_manager or not memory_service:
+            raise HTTPException(status_code=503, detail="Bot service not available. Install required dependencies.")
         await bot_manager.stop_user_bot(user_id, bot_type)
         memory_service.delete_bot_token(user_id, bot_type)
         return {"status": "success", "message": f"{bot_type} bot disconnected"}
@@ -1005,6 +1045,8 @@ async def whatsapp_webhook(request: Dict[str, Any], user_id: Optional[str] = Non
             pass
         
         # Get user's WhatsApp bot instance
+        if not HAS_BOT_SERVICES or not bot_manager:
+            raise HTTPException(status_code=503, detail="Bot service not available. Install required dependencies.")
         if user_id and user_id in bot_manager.user_bots:
             if "whatsapp" in bot_manager.user_bots[user_id]:
                 bot = bot_manager.user_bots[user_id]["whatsapp"]

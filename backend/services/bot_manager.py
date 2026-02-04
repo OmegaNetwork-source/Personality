@@ -5,9 +5,28 @@ Allows users to connect their own Discord/Telegram/WhatsApp bots
 import os
 import asyncio
 from typing import Dict, Optional, Any
-from services.discord_bot import DiscordBot
-from services.telegram_bot import TelegramBot
-from services.whatsapp_bot import WhatsAppBot
+
+# Optional bot imports - only import if libraries are available
+try:
+    from services.discord_bot import DiscordBot
+    HAS_DISCORD = True
+except ImportError:
+    DiscordBot = None
+    HAS_DISCORD = False
+
+try:
+    from services.telegram_bot import TelegramBot
+    HAS_TELEGRAM = True
+except ImportError:
+    TelegramBot = None
+    HAS_TELEGRAM = False
+
+try:
+    from services.whatsapp_bot import WhatsAppBot
+    HAS_WHATSAPP = True
+except ImportError:
+    WhatsAppBot = None
+    HAS_WHATSAPP = False
 
 class BotManager:
     def __init__(
@@ -37,6 +56,8 @@ class BotManager:
         
         try:
             if bot_type == "discord":
+                if not HAS_DISCORD or DiscordBot is None:
+                    raise ValueError("Discord bot library not installed. Install discord.py to use Discord bots.")
                 bot = DiscordBot(
                     ollama_service=self.ollama_service,
                     personality_service=self.personality_service,
@@ -49,6 +70,8 @@ class BotManager:
                 print(f"[BotManager] Started Discord bot for user {user_id}")
             
             elif bot_type == "telegram":
+                if not HAS_TELEGRAM or TelegramBot is None:
+                    raise ValueError("Telegram bot library not installed. Install python-telegram-bot to use Telegram bots.")
                 bot = TelegramBot(
                     ollama_service=self.ollama_service,
                     personality_service=self.personality_service,
@@ -63,6 +86,8 @@ class BotManager:
                 print(f"[BotManager] Started Telegram bot for user {user_id}")
             
             elif bot_type == "whatsapp":
+                if not HAS_WHATSAPP or WhatsAppBot is None:
+                    raise ValueError("WhatsApp bot library not installed. Install twilio to use WhatsApp bots.")
                 # WhatsApp uses Twilio, so we just store the credentials
                 bot = WhatsAppBot(
                     ollama_service=self.ollama_service,
