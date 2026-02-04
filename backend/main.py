@@ -51,6 +51,37 @@ personality_service = PersonalityService()
 brave_service = BraveService()
 coingecko_service = CoinGeckoService()
 
+def needs_web_search(message: str) -> bool:
+    """
+    Determine if a message likely needs current/real-time information from the web.
+    The AI will automatically search when it doesn't have the information.
+    """
+    message_lower = message.lower()
+    
+    # Keywords that suggest need for current information
+    current_info_keywords = [
+        "current", "latest", "recent", "today", "now", "this week", "this month", "this year",
+        "2024", "2025", "news", "happening", "trending", "popular", "price", "stock", "crypto",
+        "weather", "forecast", "update", "breaking", "announcement", "release", "launch",
+        "what's", "what is happening", "tell me about", "search for", "find", "look up",
+        "who is", "what is", "when did", "where is", "how much", "how many", "how to",
+        "explain", "define", "meaning of", "definition of"
+    ]
+    
+    # Check if message contains current info keywords
+    if any(keyword in message_lower for keyword in current_info_keywords):
+        return True
+    
+    # Check for questions about specific entities, events, or recent topics
+    question_words = ["who", "what", "when", "where", "why", "how"]
+    if any(message_lower.startswith(word) for word in question_words):
+        # If it's a question about something specific, it might need current info
+        # But we'll let the AI decide - only search if it's clearly about current events
+        if any(word in message_lower for word in ["current", "latest", "recent", "now", "today", "news"]):
+            return True
+    
+    return False
+
 # Request Models
 class ChatRequest(BaseModel):
     message: str
@@ -60,7 +91,6 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = False
     user_profile: Optional[Dict[str, Any]] = None
     ai_profile: Optional[Dict[str, Any]] = None
-    use_search: Optional[bool] = False  # Enable web search for current information
 
 class AIToAIChatRequest(BaseModel):
     personality1: str
@@ -470,23 +500,27 @@ async def chat(request: ChatRequest):
                 print(f"[API] Crypto price fetch failed: {e}")
                 # Continue without crypto prices
         
-        # Perform web search if requested or if message seems to need current information
+        # Automatically perform web search if message seems to need current information
+        # The AI will use this information only when it doesn't have the answer
         search_results = None
-        if request.use_search:
+        should_search = needs_web_search(request.message)
+        
+        if should_search:
             try:
                 # Use the user's message as the search query
                 search_results = await brave_service.search_and_format(
                     query=request.message,
                     count=5
                 )
-                # Add search results to context
+                # Add search results to context with instruction for AI to use only when needed
                 enhanced_context.append({
                     "role": "system",
-                    "content": f"Current web search results for context:\n{search_results}\n\nUse this information to provide accurate, up-to-date answers. Cite sources when relevant."
+                    "content": f"Web search results are available below. Use this information ONLY if you don't have the answer from your training data, or if the question is about current/recent events, news, prices, or real-time information. If you already know the answer from your training, use that instead. Search results:\n{search_results}\n\nWhen using search results, cite sources when relevant."
                 })
+                print(f"[API] Auto-searched for: {request.message[:50]}...")
             except Exception as e:
-                print(f"[API] Search failed: {e}")
-                # Continue without search results
+                print(f"[API] Auto-search failed: {e}")
+                # Continue without search results - AI will answer from its knowledge
         
         # Pass preferred language to personality system prompt builder
         preferred_language = request.ai_profile.get('preferredLanguage') if request.ai_profile else None
