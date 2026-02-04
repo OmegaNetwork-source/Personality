@@ -20,8 +20,9 @@ export default function CodeAssistant({ personality }: Props) {
     setResult('')
 
     try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
       const endpoint = `/api/code/${task}`
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

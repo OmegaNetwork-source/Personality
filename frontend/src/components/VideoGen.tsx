@@ -17,8 +17,10 @@ export default function VideoGen() {
     try {
       let response
 
+      const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+      
       if (mode === 'text' && prompt.trim()) {
-        response = await fetch('http://localhost:8000/api/video/generate', {
+        response = await fetch(`${API_URL}/api/video/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -31,7 +33,7 @@ export default function VideoGen() {
         formData.append('file', imageFile)
         formData.append('duration', duration.toString())
 
-        response = await fetch('http://localhost:8000/api/video/generate-from-image', {
+        response = await fetch(`${API_URL}/api/video/generate-from-image`, {
           method: 'POST',
           body: formData
         })

@@ -49,6 +49,8 @@ class ChatRequest(BaseModel):
     model: Optional[str] = None
     context: Optional[List[Dict[str, Any]]] = None
     stream: Optional[bool] = False
+    user_profile: Optional[Dict[str, Any]] = None
+    ai_profile: Optional[Dict[str, Any]] = None
 
 class CodeRequest(BaseModel):
     code: str
@@ -103,13 +105,29 @@ async def chat(request: ChatRequest):
     try:
         personality = personality_service.get_personality(request.personality)
         
+        # Build enhanced context with user and AI profiles
+        enhanced_context = request.context or []
+        if request.user_profile:
+            enhanced_context.insert(0, {
+                "role": "system",
+                "content": f"User profile: {request.user_profile.get('name', 'User')} is {request.user_profile.get('ethnicity', '')} {request.user_profile.get('gender', '')}. {request.user_profile.get('interests', '')} {request.user_profile.get('background', '')}"
+            })
+        if request.ai_profile:
+            ai_info = f"AI profile: {request.ai_profile.get('name', 'AI Assistant')} is {request.ai_profile.get('ethnicity', '')} {request.ai_profile.get('gender', '')}"
+            if request.ai_profile.get('traits'):
+                ai_info += f". Traits: {', '.join(request.ai_profile.get('traits', []))}"
+            enhanced_context.insert(0, {
+                "role": "system",
+                "content": ai_info
+            })
+        
         if request.stream:
             return StreamingResponse(
                 ollama_service.chat_stream(
                     request.message,
                     personality=personality,
                     model=request.model,
-                    context=request.context
+                    context=enhanced_context if enhanced_context else None
                 ),
                 media_type="text/event-stream"
             )
@@ -118,7 +136,7 @@ async def chat(request: ChatRequest):
                 request.message,
                 personality=personality,
                 model=request.model,
-                context=request.context
+                context=enhanced_context if enhanced_context else None
             )
             return response
     except Exception as e:

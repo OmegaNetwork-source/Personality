@@ -10,13 +10,14 @@ interface Props {
   personalities: Personality[]
   selected: string
   onSelect: (id: string) => void
+  aiProfile?: any
 }
 
-export default function PersonalitySelector({ personalities, selected, onSelect }: Props) {
+export default function PersonalitySelector({ personalities, selected, onSelect, aiProfile }: Props) {
   return (
     <div className="personality-selector">
       <div className="selector-container">
-        <label className="selector-label">Personality:</label>
+        <label className="selector-label">AI Personality:</label>
         <select
           className="selector-dropdown"
           value={selected}
@@ -28,6 +29,14 @@ export default function PersonalitySelector({ personalities, selected, onSelect 
             </option>
           ))}
         </select>
+        {aiProfile && (
+          <div className="ai-info">
+            <span className="ai-name">{aiProfile.name || 'Your AI'}</span>
+            {aiProfile.ethnicity && (
+              <span className="ai-details">{aiProfile.ethnicity} • {aiProfile.gender}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

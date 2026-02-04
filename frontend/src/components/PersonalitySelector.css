@@ -1,7 +1,8 @@
 .personality-selector {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-secondary);
   padding: 12px 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .selector-container {
@@ -10,27 +11,47 @@
   padding: 0 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .selector-label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .selector-dropdown {
   flex: 1;
   max-width: 400px;
   padding: 8px 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
-  background: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: border-color 0.2s;
 }
 
 .selector-dropdown:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
+}
+
+.ai-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ai-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.ai-details {
+  font-size: 12px;
+  color: var(--text-secondary);
 }

@@ -6,10 +6,11 @@
 }
 
 .image-container {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
 }
 
 .image-header {
@@ -21,11 +22,11 @@
 }
 
 .image-header h2 {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .no-filters-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent-color);
   color: white;
   padding: 6px 12px;
   border-radius: 20px;
@@ -48,22 +49,24 @@
 
 .control-group label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .prompt-input {
   width: 100%;
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .prompt-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
 }
 
 .size-controls {
@@ -80,23 +83,25 @@
 
 .size-input label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .size-input input {
   padding: 10px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .size-input input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
 }
 
 .generate-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 14px 28px;
@@ -104,10 +109,11 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background 0.2s;
 }
 
 .generate-button:hover:not(:disabled) {
+  background: var(--accent-hover);
   transform: translateY(-2px);
 }
 
@@ -119,7 +125,7 @@
 .image-result {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 2px solid #e0e0e0;
+  border-top: 2px solid var(--border-color);
 }
 
 .result-header {
@@ -130,7 +136,7 @@
 }
 
 .result-header h3 {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .download-button {

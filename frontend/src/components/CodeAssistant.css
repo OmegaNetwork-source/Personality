@@ -6,10 +6,11 @@
 }
 
 .code-container {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
 }
 
 .code-header {
@@ -20,7 +21,7 @@
 }
 
 .code-header h2 {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .code-controls {
@@ -33,9 +34,11 @@
 .task-select,
 .language-input {
   padding: 10px 12px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .task-select {
@@ -48,7 +51,7 @@
 }
 
 .submit-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent-color);
   color: white;
   border: none;
   padding: 10px 24px;
@@ -58,10 +61,11 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background 0.2s;
 }
 
 .submit-button:hover:not(:disabled) {
+  background: var(--accent-hover);
   transform: translateY(-2px);
 }
 
@@ -88,36 +92,39 @@
   gap: 8px;
   margin-bottom: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .code-editor {
   width: 100%;
   min-height: 400px;
   padding: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-family: 'Courier New', monospace;
   font-size: 14px;
   resize: vertical;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .code-editor:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
 }
 
 .code-result {
-  background: #f5f5f5;
+  background: var(--bg-primary);
   padding: 16px;
   border-radius: 8px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   font-family: 'Courier New', monospace;
   font-size: 14px;
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 500px;
   overflow-y: auto;
+  color: var(--text-primary);
 }
 
 @media (min-width: 1024px) {

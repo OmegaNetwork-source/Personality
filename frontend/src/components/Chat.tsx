@@ -2,11 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { Send } from 'lucide-react'
 import './Chat.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+
 interface Props {
   personality: string
+  userProfile?: any
+  aiProfile?: any
 }
 
-export default function Chat({ personality }: Props) {
+export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,12 +34,29 @@ export default function Chat({ personality }: Props) {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      // Build context with user and AI profile info
+      const context = []
+      if (userProfile) {
+        context.push({
+          role: 'system',
+          content: `User profile: Name: ${userProfile.name}, Ethnicity: ${userProfile.ethnicity}, Gender: ${userProfile.gender}${userProfile.interests ? ', Interests: ' + userProfile.interests : ''}${userProfile.background ? ', Background: ' + userProfile.background : ''}`
+        })
+      }
+      if (aiProfile) {
+        context.push({
+          role: 'system',
+          content: `AI profile: Name: ${aiProfile.name || 'AI Assistant'}, Ethnicity: ${aiProfile.ethnicity}, Gender: ${aiProfile.gender}${aiProfile.traits?.length ? ', Traits: ' + aiProfile.traits.join(', ') : ''}`
+        })
+      }
+
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage,
           personality: personality,
+          user_profile: userProfile,
+          ai_profile: aiProfile,
           stream: false
         })
       })

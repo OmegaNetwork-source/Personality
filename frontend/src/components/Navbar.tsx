@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom'
-import { MessageSquare, Code, Image, Video } from 'lucide-react'
+import { MessageSquare, Code, Image, Video, Moon, Sun, User } from 'lucide-react'
+import { useTheme } from '../contexts/ThemeContext'
 import './Navbar.css'
 
-export default function Navbar() {
+interface Props {
+  userProfile?: any
+  aiProfile?: any
+}
+
+export default function Navbar({ userProfile, aiProfile }: Props) {
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <nav className="navbar">
       <div className="nav-container">
@@ -27,6 +35,15 @@ export default function Navbar() {
             <Video size={20} />
             <span>Video</span>
           </Link>
+          {userProfile && (
+            <div className="nav-user-info">
+              <User size={18} />
+              <span className="nav-user-name">{userProfile.name}</span>
+            </div>
+          )}
+          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
         </div>
       </div>
     </nav>
