@@ -119,7 +119,15 @@ python3 main.py --listen 0.0.0.0 --port 7861 > "$TOOLS_DIR/logs/video.log" 2>&1 
 # Start Backend
 echo "   Starting Backend API..."
 cd "$REPO_ROOT/backend"
-uvicorn main:app --host 0.0.0.0 --port 8000 > "$TOOLS_DIR/logs/backend.log" 2>&1 &
+# Debug logging
+echo "--- Starting backend at $(date) ---" > "$TOOLS_DIR/logs/backend.log"
+echo "Working dir: $(pwd)" >> "$TOOLS_DIR/logs/backend.log"
+echo "Directory contents:" >> "$TOOLS_DIR/logs/backend.log"
+ls -la >> "$TOOLS_DIR/logs/backend.log"
+
+# Explicitly add current dir to PYTHONPATH and use python -m
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 >> "$TOOLS_DIR/logs/backend.log" 2>&1 &
 
 echo "=========================================="
 echo "✅ SETUP COMPLETE & SERVICES STARTED"
