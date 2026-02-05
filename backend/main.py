@@ -24,6 +24,7 @@ except Exception as e:
     print(f"Warning: Could not load .env file: {e}. Using default values.")
 
 from services.ollama_service import OllamaService
+from services.offline_service import OfflineService # NEW: Fake AI Mode
 
 from services.personality_service import PersonalityService
 from services.voice_service import VoiceService
@@ -67,7 +68,9 @@ app.add_middleware(
 )
 
 # Initialize Services
-ollama_service = OllamaService()
+# ollama_service = OllamaService()
+ollama_service = OfflineService() # SWITCHED TO FAKe AI MODE
+print("[Main] Using OfflineService (Fake AI) for instant responses")
 
 personality_service = PersonalityService()
 voice_service = VoiceService()
@@ -1149,4 +1152,5 @@ async def execute_command_api(request: ExecuteCommandRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

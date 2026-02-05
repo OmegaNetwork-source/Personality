@@ -6,11 +6,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface Props {
   personality: string
+  setPersonality: (id: string) => void
+  personalities: any[]
   userProfile?: any
   aiProfile?: any
 }
 
-export default function Chat({ personality, userProfile, aiProfile }: Props) {
+export default function Chat({ personality, setPersonality, personalities, userProfile, aiProfile }: Props) {
   const [messages, setMessages] = useState<Array<{ role: string; content: string; image?: string; video?: string; type?: 'text' | 'image' | 'video' }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,6 +20,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   const [playingIndex, setPlayingIndex] = useState<number | null>(null)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showPersonalityMenu, setShowPersonalityMenu] = useState(false)
   const [showPersonalityVideo, setShowPersonalityVideo] = useState(false)
   const [personalityVideoSrc, setPersonalityVideoSrc] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -38,6 +41,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
       'airdrop_farmer': 'Airdrop Farmer',
       'vietnam_vet': 'Vietnam Vet',
       'gangster': 'Gangster',
+      'serial_killer': 'Serial Killer',
       'default': 'Default'
     }
     return nameMap[personalityId] || personalityId
@@ -81,6 +85,8 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
         videoPath = '/videos/vet.mov'
       } else if (personality === 'gangster') {
         videoPath = '/videos/gangster.mov'
+      } else if (personality === 'serial_killer') {
+        videoPath = '/videos/serial.mov'
       }
 
       if (videoPath) {
@@ -820,16 +826,103 @@ ${cleanedCode}
             )}
             <div ref={messagesEndRef} />
           </div>
+
           <div className="chat-input-container">
-            <button className="attach-button" onClick={handleFileUpload} title="Attach file">
-              <Paperclip size={20} />
-            </button>
+            {/* Personality Avatar Button (Replaces Attach Button) */}
+            <div className="personality-selector-wrapper" style={{ position: 'relative' }}>
+              <button
+                className="personality-avatar-btn"
+                onClick={() => setShowPersonalityMenu(!showPersonalityMenu)}
+                title="Change Personality"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  padding: 0,
+                  border: '2px solid var(--accent-color)',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  background: 'var(--bg-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src={getPersonalityAvatar(personality)}
+                  alt={personality}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = '/avatars/default.png'
+                  }}
+                />
+              </button>
+
+              {/* Personality Selection Menu */}
+              {showPersonalityMenu && (
+                <div className="personality-menu" style={{
+                  position: 'absolute',
+                  bottom: '50px',
+                  left: '0',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  width: '200px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                  zIndex: 100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}>
+                  {personalities.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setPersonality(p.id)
+                        setShowPersonalityMenu(false)
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        textAlign: 'left',
+                        background: personality === p.id ? 'var(--bg-secondary)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <img
+                        src={getPersonalityAvatar(p.id)}
+                        alt={p.name}
+                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = '/avatars/default.png'
+                        }}
+                      />
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <input
               className="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Ask anything"
+              placeholder={`Message ${getPersonalityName(personality)}...`}
               disabled={loading}
             />
             <button className="send-button" onClick={sendMessage} disabled={loading || !input.trim()}>

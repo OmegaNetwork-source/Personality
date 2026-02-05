@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: characteros-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OLLAMA_URL
+        sync: false
+      - key: OLLAMA_MODEL
+        value: tinyllama
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PORT
+        value: 8000

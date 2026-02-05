@@ -171,29 +171,50 @@ class OllamaService:
         else:
              print(f"[OllamaService] Skipping few-shot examples for speed optimization (tinyllama detected)")
 
+        # TINYLLAMA OPTIMIZATION:
+        # 1. Truncate system prompt (heavy prompts cause hangs on CPU)
+        # 2. Disable streaming (buffering issues with tinyllama)
+        is_tinyllama = "tinyllama" in (model or self.default_model)
+        should_stream = True
+        
+        if is_tinyllama:
+            print(f"[OllamaService] Usage Optimization: Detected 'tinyllama'")
+            # Truncate system prompt to first sentence
+            if messages and messages[0]['role'] == 'system':
+                full_prompt = messages[0]['content']
+                short_prompt = full_prompt.split('.')[0] + "."
+                messages[0]['content'] = short_prompt
+                print(f"[OllamaService] Truncated system prompt: '{short_prompt}'")
+            
+            # Disable streaming to prevent hangs
+            should_stream = False
+            print(f"[OllamaService] Forced stream=False for reliability")
+
         try:
-            # SINGLE STAGE STREAMING (Robust & Simple)
+            # SINGLE STAGE REQUEST
             async with httpx.AsyncClient(timeout=300.0) as client:
                 print(f"[OllamaService] Sending request to {self.base_url}/api/chat with model {model or self.default_model}...")
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/api/chat",
-                    json={
-                        "model": model,
-                        "messages": messages,
-                        "stream": True,
-                        "options": {
-                            "temperature": 0.6,   # Lower temp for stability/adherence
-                            "top_p": 0.9,
-                            "repeat_penalty": 1.1,
-                            "top_k": 40,
-                            "num_predict": 256,
-                            # "stop": ["User:", "Assistant:", "System:", "User", "Assistant", "System"], # REMOVED: Suspected cause of hangs on tinyllama
-                        }
+                
+                # If streaming is disabled, we use a different request pattern? 
+                # httpx.stream works for non-streaming too, just treats body as stream.
+                # BUT Ollama API expects "stream": False in JSON to return single object.
+                
+                request_json = {
+                    "model": model,
+                    "messages": messages,
+                    "stream": should_stream,
+                    "options": {
+                        "temperature": 0.6,
+                        "top_p": 0.9,
+                        "repeat_penalty": 1.1,
+                        "top_k": 40,
+                        "num_predict": 256,
                     }
-                ) as response:
+                }
+
+                async with client.stream("POST", f"{self.base_url}/api/chat", json=request_json) as response:
                     response.raise_for_status()
-                    print("[OllamaService] Starting stream consumption...")
+                    print("[OllamaService] Starting response consumption...")
                     chunk_count = 0
                     async for line in response.aiter_lines():
                         if line:
@@ -202,11 +223,11 @@ class OllamaService:
                                 if "message" in data and "content" in data["message"]:
                                     chunk_count += 1
                                     if chunk_count == 1:
-                                        print(f"[OllamaService] First token received! Content: '{data['message']['content']}'")
+                                        print(f"[OllamaService] First token/response received!")
                                     yield f"data: {json.dumps(data)}\n\n"
                             except json.JSONDecodeError:
                                 continue
-                                    
+
         except Exception as e:
             print(f"[OllamaService] Error in Stream: {e}")
             error_msg = json.dumps({"message": {"content": f"\n[Error: {str(e)}]"}})

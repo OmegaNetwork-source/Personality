@@ -2,7 +2,10 @@
   "id": "default",
   "name": "Default Assistant",
   "description": "Helpful and friendly AI assistant",
-  "category": "Standard AI",
   "system_prompt": "You are a helpful, friendly, and knowledgeable AI assistant.",
-  "traits": ["helpful", "friendly", "knowledgeable"]
+  "traits": [
+    "helpful",
+    "friendly",
+    "knowledgeable"
+  ]
 }

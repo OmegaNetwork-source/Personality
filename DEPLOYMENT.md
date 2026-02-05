@@ -32,13 +32,14 @@ This guide will help you deploy CharacterOS to production for showcasing.
    - **Output Directory**: `dist`
    - **Install Command**: `npm install`
 
-4. **Set Environment Variables**:
+4. **Set Environment Variables** (if using remote backend):
    - Go to Project Settings → Environment Variables
    - Add:
      ```
      VITE_API_URL = https://your-ngrok-url.ngrok-free.dev
      ```
-   - Replace with your actual ngrok URL or RunPod proxy URL
+   - Replace with your actual ngrok URL, RunPod proxy URL, or cloud backend URL
+   - **Note**: If backend is local only, Vercel frontend won't be able to connect (see VERCEL_SETUP.md)
 
 5. **Deploy**:
    - Click "Deploy"
