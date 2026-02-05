@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Paperclip, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
 import './Chat.css'
+import { offlineService } from '../services/OfflineService'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -410,102 +411,44 @@ export default function Chat({ personality, setPersonality, personalities, userP
         return
       }
 
-      // Regular chat message - Prepare for streaming
+      // Regular chat message - Use OfflineService
       // Build context
       const context = messages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content
       }))
 
-      // Use AbortController for user cancellation
-      const controller = new AbortController()
-
-      const response = await fetch(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          personality: personality,
-          user_profile: userProfile,
-          ai_profile: aiProfile,
-          context: context,
-          stream: true // ENABLE STREAMING
-        }),
-        signal: controller.signal
-      })
-
-      if (!response.ok) {
-        throw new Error(`Backend error (${response.status})`)
-      }
-
-      if (!response.body) {
-        throw new Error('Response body is null')
-      }
-
-      // STREAMING READER LOGIC
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
       let fullMessage = ''
       let isFirstChunk = true
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+      // Use the offline service
+      for await (const chunk of offlineService.chatStream(userMessage, personality, context)) {
+        try {
+          const data = JSON.parse(chunk)
 
-        const chunk = decoder.decode(value, { stream: true })
-        buffer += chunk
-        const lines = buffer.split('\n')
+          if (data.done) break
 
-        // Process all complete lines
-        buffer = lines.pop() || '' // Keep the last partial line in buffer
+          if (data.message && data.message.content) {
+            const token = data.message.content
+            fullMessage += token
 
-        for (const line of lines) {
-          const trimmedLine = line.trim()
-          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue
-
-          try {
-            const jsonStr = trimmedLine.substring(6) // Remove "data: " prefix
-            if (jsonStr === '[DONE]') continue
-
-            const data = JSON.parse(jsonStr)
-
-            // Extract content from various possible formats
-            let token = ''
-            if (data.message?.content) {
-              token = data.message.content
-            } else if (data.response) {
-              token = data.response
-            } else if (data.content) {
-              token = data.content
+            if (isFirstChunk) {
+              setLoading(false)
+              setMessages(prev => [...prev, { role: 'assistant', content: fullMessage, type: 'text' }])
+              isFirstChunk = false
+            } else {
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMsg = newMessages[newMessages.length - 1]
+                if (lastMsg.role === 'assistant') {
+                  lastMsg.content = fullMessage
+                }
+                return newMessages
+              })
             }
-
-            if (token) {
-              fullMessage += token
-
-              if (isFirstChunk) {
-                // FIRST TOKEN: Hide loading, create message
-                setLoading(false)
-                setMessages(prev => [...prev, { role: 'assistant', content: fullMessage, type: 'text' }])
-                isFirstChunk = false
-              } else {
-                // SUBSEQUENT TOKENS: Update last message
-                setMessages(prev => {
-                  const newMessages = [...prev]
-                  const lastMsg = newMessages[newMessages.length - 1]
-                  if (lastMsg.role === 'assistant') {
-                    lastMsg.content = fullMessage
-                  }
-                  return newMessages
-                })
-              }
-            }
-          } catch (e) {
-            console.warn('Error parsing stream line:', e)
           }
+        } catch (e) {
+          console.warn('Error parsing offline chunk:', e)
         }
       }
 
@@ -513,20 +456,14 @@ export default function Chat({ personality, setPersonality, personalities, userP
       console.error('Chat error:', error)
       let errorMessage = 'Error: Failed to get response.'
 
-      // If we haven't started streaming yet, create a new error message
-      // If we HAVE started streaming, append error to it
-
       setMessages(prev => {
         const newMessages = [...prev]
-        // Check if last message is assistant
         const lastMsg = newMessages.length > 0 ? newMessages[newMessages.length - 1] : null
 
         if (lastMsg && lastMsg.role === 'assistant' && !loading) {
-          // We were already streaming, append error
-          lastMsg.content += `\n\n[Network Error: ${error.message}]`
+          lastMsg.content += `\n\n[Error: ${error.message}]`
           return newMessages
         } else {
-          // We failed before streaming started
           return [...newMessages, { role: 'assistant', content: errorMessage }]
         }
       })
