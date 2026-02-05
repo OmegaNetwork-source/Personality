@@ -58,8 +58,8 @@ class PersonalityService:
         for personality_id, personality_data in default_personalities.items():
             personality_file = self.personalities_dir / f"{personality_id}.json"
             if not personality_file.exists():
-                with open(personality_file, 'w') as f:
-                    json.dump(personality_data, f, indent=2)
+                with open(personality_file, 'w', encoding='utf-8') as f:
+                    json.dump(personality_data, f, indent=2, ensure_ascii=False)
     
     def get_all_personalities(self) -> List[Dict[str, Any]]:
         """Get all available personalities"""
@@ -72,7 +72,7 @@ class PersonalityService:
         
         for file in json_files:
             try:
-                with open(file, 'r') as f:
+                with open(file, 'r', encoding='utf-8') as f:
                     personality_data = json.load(f)
                     personalities.append(personality_data)
                     print(f"[DEBUG] Loaded personality: {personality_data.get('id', 'unknown')} - {personality_data.get('name', 'unnamed')}")
@@ -87,7 +87,7 @@ class PersonalityService:
         """Get specific personality by ID"""
         personality_file = self.personalities_dir / f"{personality_id}.json"
         if personality_file.exists():
-            with open(personality_file, 'r') as f:
+            with open(personality_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         else:
             # Return default if not found

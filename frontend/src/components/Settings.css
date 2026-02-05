@@ -178,6 +178,21 @@
 }
 
 @media (max-width: 640px) {
+  .settings-modal {
+    width: 95%;
+    max-width: 95%;
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .settings-header {
+    padding: 16px 20px;
+  }
+
+  .settings-title h2 {
+    font-size: 20px;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -199,6 +214,29 @@
     min-height: 44px;
     padding: 14px 20px;
     font-size: 15px;
+  }
+
+  /* Ensure featured personality options are readable on mobile */
+  .form-group select option.featured-personality {
+    font-size: 15px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .settings-header {
+    padding: 12px 16px;
+  }
+
+  .settings-title h2 {
+    font-size: 18px;
   }
 }
 
@@ -252,6 +290,13 @@
   background-repeat: no-repeat;
   background-position: right 16px center;
   padding-right: 40px;
+}
+
+/* Featured personality options with glow effect */
+.form-group select option.featured-personality {
+  background: rgba(102, 126, 234, 0.2) !important;
+  font-weight: 600;
+  color: var(--accent-color, #667eea) !important;
 }
 
 .form-group textarea {

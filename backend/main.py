@@ -24,8 +24,7 @@ except Exception as e:
     print(f"Warning: Could not load .env file: {e}. Using default values.")
 
 from services.ollama_service import OllamaService
-from services.image_service import ImageService
-from services.video_service import VideoService
+
 from services.personality_service import PersonalityService
 from services.voice_service import VoiceService
 from services.brave_service import BraveService
@@ -69,8 +68,7 @@ app.add_middleware(
 
 # Initialize Services
 ollama_service = OllamaService()
-image_service = ImageService()
-video_service = VideoService()
+
 personality_service = PersonalityService()
 voice_service = VoiceService()
 brave_service = BraveService()
@@ -176,21 +174,7 @@ class CodeRequest(BaseModel):
     personality: Optional[str] = "developer"
     context: Optional[str] = None
 
-class ImageRequest(BaseModel):
-    prompt: str
-    negative_prompt: Optional[str] = ""
-    width: Optional[int] = 1024
-    height: Optional[int] = 1024
-    steps: Optional[int] = 50
-    guidance_scale: Optional[float] = 7.5
-    seed: Optional[int] = None
 
-class VideoRequest(BaseModel):
-    prompt: Optional[str] = None
-    image_url: Optional[str] = None
-    duration: Optional[int] = 4  # seconds
-    fps: Optional[int] = 24
-    seed: Optional[int] = None
 
 # Health Check
 @app.get("/")
@@ -199,13 +183,23 @@ async def root():
         "status": "online",
             "services": {
                 "ollama": await ollama_service.check_health(),
-                "image": await image_service.check_health(),
-                "video": await video_service.check_health(),
+
                 "voice": await voice_service.check_health(),
                 "brave": await brave_service.check_health(),
                 "coingecko": await coingecko_service.check_health()
             }
     }
+
+@app.get("/health")
+async def health_check():
+    """Detailed health check endpoint - verifies all services"""
+    ollama_status = await ollama_service.check_health()
+
+    
+    if not ollama_status:
+        health_status["message"] = "Ollama service is required but not responding. Please start Ollama with 'ollama serve'"
+    
+    return health_status
 
 # Personality Endpoints
 @app.get("/personalities")
@@ -551,6 +545,12 @@ async def chat(request: ChatRequest):
     try:
         personality = personality_service.get_personality(request.personality)
         
+        # Debug: Log which personality is being used
+        print(f"[API] Using personality: {personality.get('name', request.personality)} (ID: {personality.get('id', 'unknown')})")
+        print(f"[API] Personality has system_prompt: {bool(personality.get('system_prompt'))}")
+        if personality.get('system_prompt'):
+            print(f"[API] System prompt preview: {personality.get('system_prompt')[:150]}...")
+        
         # Get memory context (conversations + memories)
         memory_context = None
         user_id = request.user_profile.get('id') if request.user_profile else None
@@ -583,21 +583,8 @@ async def chat(request: ChatRequest):
         if memory_context:
             enhanced_context = memory_context + enhanced_context
         
-        if request.user_profile:
-            enhanced_context.append({
-                "role": "user",
-                "content": f"[User Context] User profile: {request.user_profile.get('name', 'User')} is {request.user_profile.get('ethnicity', '')} {request.user_profile.get('gender', '')}. {request.user_profile.get('interests', '')} {request.user_profile.get('background', '')}"
-            })
-        if request.ai_profile:
-            ai_info = f"[AI Context] AI profile: {request.ai_profile.get('name', 'AI Assistant')} is {request.ai_profile.get('ethnicity', '')} {request.ai_profile.get('gender', '')}"
-            if request.ai_profile.get('traits'):
-                ai_info += f". Traits: {', '.join(request.ai_profile.get('traits', []))}"
-            if request.ai_profile.get('preferredLanguage'):
-                ai_info += f". Preferred language: {request.ai_profile.get('preferredLanguage')}"
-            enhanced_context.append({
-                "role": "user",
-                "content": ai_info
-            })
+        # Store user/AI profile for system prompt enhancement (not as context messages)
+        # These will be added to the system prompt in ollama_service, not as separate messages
         
         # Detect website/HTML requests and enhance prompt to generate HTML code
         message_lower = request.message.lower()
@@ -701,7 +688,7 @@ IMPORTANT: The user is asking for a website. You MUST provide complete, working 
                 print(f"[API] Auto-search failed: {e}")
                 # Continue without search results - AI will answer from its knowledge
         
-        # Pass preferred language to personality system prompt builder
+        # Pass preferred language and profiles to personality system prompt builder
         preferred_language = request.ai_profile.get('preferredLanguage') if request.ai_profile else None
         
         if request.stream:
@@ -721,8 +708,20 @@ IMPORTANT: The user is asking for a website. You MUST provide complete, working 
                 personality=personality,
                 model=request.model,
                 context=enhanced_context if enhanced_context else None,
-                preferred_language=preferred_language
+                preferred_language=preferred_language,
+                user_profile=request.user_profile,
+                ai_profile=request.ai_profile
             )
+            
+            # Debug: Log response structure
+            print(f"[API] Response type: {type(response)}, keys: {list(response.keys()) if isinstance(response, dict) else 'not a dict'}")
+            if isinstance(response, dict):
+                message_content = response.get("message", {}).get("content", "") if response.get("message") else None
+                if message_content:
+                    print(f"[API] Message content length: {len(message_content)}, preview: {message_content[:100]}...")
+                else:
+                    print(f"[API] WARNING: No message.content found in response")
+            
             # Add search results and crypto prices to response if available
             if search_results:
                 response["search_results"] = search_results
@@ -754,7 +753,11 @@ IMPORTANT: The user is asking for a website. You MUST provide complete, working 
             
             return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Chat endpoint failed: {e}")
+        print(f"[ERROR] Traceback:\n{error_trace}")
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 # Code Generation & Assistance (Cursor-like features)
 @app.post("/api/code/complete")
@@ -802,85 +805,7 @@ async def refactor_code(request: CodeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Image Generation
-@app.post("/api/image/generate")
-async def generate_image(request: ImageRequest):
-    """Generate image from text prompt (no filters)"""
-    try:
-        # Check if service is available
-        is_healthy = await image_service.check_health()
-        if not is_healthy:
-            raise HTTPException(
-                status_code=503, 
-                detail=f"Image generation service is not available. Make sure Stable Diffusion is running at {image_service.base_url}"
-            )
-        
-        result = await image_service.generate(
-            prompt=request.prompt,
-            negative_prompt=request.negative_prompt,
-            width=request.width,
-            height=request.height,
-            steps=request.steps,
-            guidance_scale=request.guidance_scale,
-            seed=request.seed
-        )
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[API] Image generation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
-# Video Generation
-@app.post("/api/video/generate")
-async def generate_video(request: VideoRequest):
-    """Generate video from text prompt or image (no filters)"""
-    try:
-        # Check if service is available
-        is_healthy = await video_service.check_health()
-        if not is_healthy:
-            raise HTTPException(
-                status_code=503, 
-                detail=f"Video generation service is not available. Make sure ComfyUI is running at {video_service.base_url}"
-            )
-        
-        result = await video_service.generate(
-            prompt=request.prompt,
-            image_url=request.image_url,
-            duration=request.duration,
-            fps=request.fps,
-            seed=request.seed
-        )
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[API] Video generation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/video/generate-from-image")
-async def generate_video_from_image(file: UploadFile = File(...), duration: int = 4):
-    """Generate video from uploaded image"""
-    try:
-        # Check if service is available
-        is_healthy = await video_service.check_health()
-        if not is_healthy:
-            raise HTTPException(
-                status_code=503, 
-                detail=f"Video generation service is not available. Make sure ComfyUI is running at {video_service.base_url}"
-            )
-        
-        image_data = await file.read()
-        result = await video_service.generate_from_image(
-            image_data=image_data,
-            duration=duration
-        )
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[API] Video generation from image error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # Memory Endpoints
 class MemoryRequest(BaseModel):

@@ -26,7 +26,7 @@ interface Props {
 export default function Settings({ userProfile, aiProfile, personalities, onSave, onClose, onPersonalityUpdate }: Props) {
   const [activeTab, setActiveTab] = useState<'config' | 'editor'>('config')
   const [aiForm, setAIForm] = useState<AIProfile>({
-    personality: aiProfile?.personality || 'default',
+    personality: aiProfile?.personality || 'vietnam_vet',
     ethnicity: aiProfile?.ethnicity || '',
     gender: aiProfile?.gender || '',
     name: aiProfile?.name || '',
@@ -303,8 +303,27 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
     )
   }
 
+  // Featured personalities that should appear first with highlight
+  const featuredPersonalityIds = ['vietnam_vet', 'slave', 'gangster', 'serial_killer']
+  
+  // Sort personalities: featured first, then others
+  const sortedPersonalities = [...personalities].sort((a, b) => {
+    const aIndex = featuredPersonalityIds.indexOf(a.id)
+    const bIndex = featuredPersonalityIds.indexOf(b.id)
+    
+    // If both are featured, maintain their order
+    if (aIndex !== -1 && bIndex !== -1) {
+      return aIndex - bIndex
+    }
+    // Featured ones come first
+    if (aIndex !== -1) return -1
+    if (bIndex !== -1) return 1
+    // Others maintain original order
+    return 0
+  })
+
   // Group personalities by category
-  const groupedPersonalities = personalities.reduce((acc, personality) => {
+  const groupedPersonalities = sortedPersonalities.reduce((acc, personality) => {
     const category = personality.category || 'Standard AI'
     if (!acc[category]) {
       acc[category] = []
@@ -619,8 +638,26 @@ export default function Settings({ userProfile, aiProfile, personalities, onSave
                   ) : (
                     <>
                       <option value="">Select a personality</option>
+                      {/* Featured personalities first */}
+                      {sortedPersonalities
+                        .filter(p => featuredPersonalityIds.includes(p.id))
+                        .map(p => (
+                          <option 
+                            key={p.id} 
+                            value={p.id}
+                            className="featured-personality"
+                          >
+                            ⭐ {p.name} - {p.description}
+                          </option>
+                        ))}
+                      {/* Separator if we have featured personalities */}
+                      {sortedPersonalities.filter(p => featuredPersonalityIds.includes(p.id)).length > 0 && (
+                        <option disabled>─────────────────</option>
+                      )}
+                      {/* Other personalities grouped by category */}
                       {categoryOrder.map(category => {
-                        const categoryPersonalities = groupedPersonalities[category] || []
+                        const categoryPersonalities = (groupedPersonalities[category] || [])
+                          .filter(p => !featuredPersonalityIds.includes(p.id))
                         if (categoryPersonalities.length === 0) return null
                         return (
                           <optgroup key={category} label={category}>

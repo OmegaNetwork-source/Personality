@@ -10,7 +10,7 @@ import './App.css'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
-  const [selectedPersonality, setSelectedPersonality] = useState('default')
+  const [selectedPersonality, setSelectedPersonality] = useState('vietnam_vet')
   const [personalities, setPersonalities] = useState<any[]>([])
   const [userProfile, setUserProfile] = useState<any>(null)
   const [aiProfile, setAIProfile] = useState<any>(null)

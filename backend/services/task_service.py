@@ -257,6 +257,52 @@ class TaskService:
         action = task_data.get('action', '')
         
         return f"Custom task executed: {action}"
+
+    async def _handle_file_create_task(self, task: Dict[str, Any]) -> str:
+        """Handle file creation task"""
+        task_data = json.loads(task['task_data'])
+        path = task_data.get('path', '')
+        content = task_data.get('content', '')
+        
+        if self.filesystem_service:
+            # delegated to filesystem service
+            return await self.filesystem_service.write_file(path, content)
+        return f"File system service not available. Mock created: {path}"
+
+    async def _handle_file_read_task(self, task: Dict[str, Any]) -> str:
+        """Handle file read task"""
+        task_data = json.loads(task['task_data'])
+        path = task_data.get('path', '')
+        
+        if self.filesystem_service:
+            return await self.filesystem_service.read_file(path)
+        return f"File system service not available. Mock read: {path}"
+
+    async def _handle_file_write_task(self, task: Dict[str, Any]) -> str:
+        """Handle file write task"""
+        task_data = json.loads(task['task_data'])
+        path = task_data.get('path', '')
+        content = task_data.get('content', '')
+        
+        if self.filesystem_service:
+            return await self.filesystem_service.write_file(path, content)
+        return f"File system service not available. Mock wrote: {path}"
+
+    async def _handle_file_troubleshoot_task(self, task: Dict[str, Any]) -> str:
+        """Handle file troubleshoot task"""
+        return "File troubleshooting not implemented yet"
+
+    async def _handle_file_autofix_task(self, task: Dict[str, Any]) -> str:
+        """Handle file autofix task"""
+        return "File autofix not implemented yet"
+
+    async def _handle_execute_command_task(self, task: Dict[str, Any]) -> str:
+        """Handle execute command task"""
+        task_data = json.loads(task['task_data'])
+        command = task_data.get('command', '')
+        # Security warning: executing commands autonomously is dangerous
+        # For now, just log it
+        return f"Command execution requested: {command} (Execution disabled for safety)"
     
     async def execute_task(self, task: Dict[str, Any]) -> str:
         """Execute a task"""
