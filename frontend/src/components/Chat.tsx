@@ -93,11 +93,19 @@ export default function Chat({ personality, setPersonality, personalities, userP
       if (videoPath) {
         setPersonalityVideoSrc(videoPath)
         setShowPersonalityVideo(true)
-        // Clear messages when showing video
-        setMessages([])
       }
+
+      // Set greeting message to keep user in chat view
+      const currentP = personalities.find(p => p.id === personality)
+      const greeting = currentP?.greeting_response || "I'm ready to chat."
+
+      setMessages([{
+        role: 'assistant',
+        content: greeting,
+        type: 'text'
+      }])
     }
-  }, [personality])
+  }, [personality, personalities])
 
   const handlePersonalityVideoEnd = () => {
     setShowPersonalityVideo(false)
@@ -905,7 +913,6 @@ ${cleanedCode}
                 ref={personalityVideoRef}
                 src={personalityVideoSrc}
                 autoPlay
-                muted
                 playsInline
                 className="personality-video"
                 onEnded={handlePersonalityVideoEnd}
