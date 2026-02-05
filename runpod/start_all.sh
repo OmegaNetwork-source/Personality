@@ -1,64 +1,72 @@
 #!/bin/bash
 
-# Quick Start Script - Start all services in screen sessions
+# Quick Start Script - Start Ollama, Backend API, and ngrok
 # Run this after your RunPod server restarts
 
-echo "🚀 Starting all CharacterOS services..."
+echo "🚀 Starting CharacterOS services..."
+
+# Install screen if not available
+if ! command -v screen &> /dev/null; then
+    echo "📦 Installing screen..."
+    apt-get update -qq
+    apt-get install -y screen
+fi
 
 # Navigate to workspace
 cd /workspace || cd ~
 
 # 1. Start Ollama (Text Generation)
 echo "🦙 Starting Ollama..."
-screen -dmS ollama bash -c "ollama serve; exec bash"
-sleep 3
-
-# 2. Start Stable Diffusion (Image Generation)
-echo "🎨 Starting Stable Diffusion..."
-cd /workspace/stable-diffusion-webui || cd ~/stable-diffusion-webui
-screen -dmS sd bash -c "./webui.sh --api --listen 0.0.0.0 --port 7860; exec bash"
-sleep 5
-
-# 3. Start ComfyUI (Video Generation) - if you have it set up
-echo "🎬 Starting ComfyUI (Video)..."
-cd /workspace/ComfyUI || cd ~/ComfyUI
-if [ -d "ComfyUI" ]; then
-    screen -dmS video_gen bash -c "cd ComfyUI && python3 main.py --listen 0.0.0.0 --port 7862; exec bash"
-    sleep 3
+if pgrep -x "ollama" > /dev/null; then
+    echo "   ⚠️  Ollama is already running"
 else
-    echo "   ⚠️  ComfyUI not found, skipping video generation"
+    screen -dmS ollama bash -c "ollama serve; exec bash"
+    sleep 3
+    echo "   ✅ Ollama started"
 fi
 
-# 4. Start Backend API
+# 2. Start Backend API
 echo "🐍 Starting Backend API..."
-cd /workspace/Personality/backend || cd ~/Personality/backend
-screen -dmS backend bash -c "python3 -m uvicorn main:app --host 0.0.0.0 --port 8000; exec bash"
-sleep 3
+cd /workspace/Personality/backend || cd ~/Personality/backend || cd backend
 
-# 5. Start ngrok (if installed)
+# Check if backend is already running
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null ; then
+    echo "   ⚠️  Backend is already running on port 8000"
+else
+    screen -dmS backend bash -c "python3 -m uvicorn main:app --host 0.0.0.0 --port 8000; exec bash"
+    sleep 3
+    echo "   ✅ Backend API started"
+fi
+
+# 3. Start ngrok
 echo "🌐 Starting ngrok..."
 if command -v ngrok &> /dev/null; then
-    screen -dmS ngrok bash -c "ngrok http 8000; exec bash"
-    sleep 2
-    echo "   ✅ ngrok started - check http://localhost:4040 for URL"
+    if pgrep -x "ngrok" > /dev/null; then
+        echo "   ⚠️  ngrok is already running"
+    else
+        screen -dmS ngrok bash -c "ngrok http 8000; exec bash"
+        sleep 3
+        echo "   ✅ ngrok started"
+    fi
+    echo "   📋 Check ngrok URL at: http://localhost:4040"
 else
-    echo "   ⚠️  ngrok not found, skipping"
+    echo "   ⚠️  ngrok not found - install it or use RunPod proxy"
 fi
 
 echo ""
-echo "✅ All services started in screen sessions!"
+echo "✅ Services started in screen sessions!"
 echo ""
 echo "📋 To view/attach to sessions:"
-echo "   screen -r ollama    # Text generation"
-echo "   screen -r sd        # Image generation"
-echo "   screen -r video_gen # Video generation"
+echo "   screen -r ollama    # Text generation (Ollama)"
 echo "   screen -r backend   # API server"
-echo "   screen -r ngrok     # Tunnel (if running)"
+echo "   screen -r ngrok      # Tunnel"
 echo ""
 echo "📊 Check service status:"
 echo "   curl http://localhost:8000/  # Backend health"
-echo "   curl http://localhost:7860   # Stable Diffusion"
-echo "   curl http://localhost:7862  # ComfyUI"
+echo "   curl http://localhost:11434  # Ollama"
 echo ""
 echo "🔗 Get ngrok URL:"
-echo "   curl http://localhost:4040/api/tunnels | grep -o '\"public_url\":\"[^\"]*' | head -1"
+echo "   curl http://localhost:4040/api/tunnels 2>/dev/null | grep -o '\"public_url\":\"[^\"]*' | head -1 | cut -d'\"' -f4"
+echo ""
+echo "💡 To list all screen sessions: screen -ls"
+echo "💡 To detach from a session: Press Ctrl+A then D"
