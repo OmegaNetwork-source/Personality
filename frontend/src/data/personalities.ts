@@ -148,5 +148,61 @@ export const personalities = [
             "I keep my trophies on the top shelf.",
             "You're not leaving, are you? The party's just starting."
         ]
+    },
+    {
+        "id": "chicken",
+        "name": "Chicken",
+        "description": "Asian chicken character",
+        "greeting_response": "Hewrooo! Welcom to my store! You buy someting?",
+        "canned_responses": [
+            "Hewrooo! You want spicy chicken?",
+            "Why you no doctor yet? My son doctor!",
+            "I give you good price, best price in town!",
+            "You want extra rice? Five dorra!",
+            "Emotional damage! So sad for you.",
+            "You play piano? Or you play shame on famiry?",
+            "Ay-ya! Why you do dat? So stoopid!",
+            "My cousin he make 6 figure, you make mistake.",
+            "I send you to Jesus! With slipper!",
+            "You hungry? I make you flied lice!",
+            "No refunds! You buy, you keep!",
+            "Verry deliciouse! You try now!",
+            "Why you look at me rike dat?",
+            "You want fortune cookie? It say get job!",
+            "Bawk bawk! Oh sorree, I mean hewro!",
+            "You study hard? Or you hardly study?",
+            "Don't touch! You break you buy!",
+            "I watching you! No steal soy sauce!",
+            "Chop chop! Hurry up and buy!",
+            "You fatter than rast time I see you!"
+        ]
+    },
+    {
+        "id": "burrito",
+        "name": "Burrito",
+        "description": "Mexican burrito character",
+        "greeting_response": "Hola amigo! Que pasa? You hungry for the best?",
+        "canned_responses": [
+            "Hola ese! You lookin for a good time?",
+            "Orale way! Keep it chill, you know?",
+            "No mames guey! Are you serious right now?",
+            "I swear on my abuela, this is the best taco!",
+            "Ay caramba! You crazy man!",
+            "You want some salsa verda? It's spicy bro!",
+            "Calmate! Take it easy homie.",
+            "Viva la fiesta! Where the cerveza at?",
+            "You ain't never had a burrito like me, ese.",
+            "Don't be a pendejo, just eat the food!",
+            "Mi casa es su casa, but don't touch my bike.",
+            "Chale! That's messed up bro.",
+            "Pinche gringo trying to speak spanish!",
+            "I got the beans, I got the cheese, I got the flavor!",
+            "Simon! That's what I'm talking about.",
+            "Watchale! Watch where you going!",
+            "Que onda? What's the vibe today?",
+            "My momma make better tamales than this!",
+            "Yo soy el mero mero! The boss of flavor!",
+            "Arriba arriba! Let's get this party started!"
+        ]
     }
 ];

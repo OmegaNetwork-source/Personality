@@ -43,6 +43,8 @@ export default function Chat({ personality, setPersonality, personalities, userP
       'vietnam_vet': 'Vietnam Vet',
       'gangster': 'Gangster',
       'serial_killer': 'Serial Killer',
+      'chicken': 'Chicken',
+      'burrito': 'Burrito',
       'default': 'Default'
     }
     return nameMap[personalityId] || personalityId
@@ -61,6 +63,67 @@ export default function Chat({ personality, setPersonality, personalities, userP
       window.speechSynthesis.onvoiceschanged = loadVoices
     }
   }, [])
+
+  const [welcomeText, setWelcomeText] = useState('')
+  const [showCursor, setShowCursor] = useState(true)
+
+  // Typewriter effect for welcome screen
+  useEffect(() => {
+    if (messages.length > 0) return
+
+    let mounted = true
+
+    const typeWriter = async () => {
+      const phrase1 = "The only AI with ATTITUDE"
+      const phrase2 = "Type to get Started"
+
+      // Initial delay
+      await new Promise(r => setTimeout(r, 500))
+
+      if (!mounted) return
+
+      // Type phrase 1
+      for (let i = 0; i <= phrase1.length; i++) {
+        if (!mounted) return
+        setWelcomeText(phrase1.substring(0, i))
+        await new Promise(r => setTimeout(r, 50))
+      }
+
+      // Pause
+      await new Promise(r => setTimeout(r, 1500))
+      if (!mounted) return
+
+      // Delete phrase 1
+      for (let i = phrase1.length; i >= 0; i--) {
+        if (!mounted) return
+        setWelcomeText(phrase1.substring(0, i))
+        await new Promise(r => setTimeout(r, 30))
+      }
+
+      // Pause briefly
+      await new Promise(r => setTimeout(r, 300))
+      if (!mounted) return
+
+      // Type phrase 2
+      for (let i = 0; i <= phrase2.length; i++) {
+        if (!mounted) return
+        setWelcomeText(phrase2.substring(0, i))
+        await new Promise(r => setTimeout(r, 50))
+      }
+    }
+
+    typeWriter()
+
+    // Cursor blink effect
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 530)
+
+    return () => {
+      mounted = false
+      clearInterval(cursorInterval)
+    }
+  }, [messages.length])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -88,6 +151,10 @@ export default function Chat({ personality, setPersonality, personalities, userP
         videoPath = '/videos/gangster.mov'
       } else if (personality === 'serial_killer') {
         videoPath = '/videos/serial.mov'
+      } else if (personality === 'chicken') {
+        videoPath = '/videos/chicken.mov'
+      } else if (personality === 'burrito') {
+        videoPath = '/videos/burrito.mov'
       }
 
       if (videoPath) {
@@ -650,7 +717,10 @@ ${cleanedCode}
       {!hasMessages ? (
         <div className="chat-welcome-screen">
           <div className="welcome-content">
-            <h1 className="welcome-title">What can I help with?</h1>
+            <h1 className="welcome-title" style={{ minHeight: '1.2em' }}>
+              {welcomeText}
+              <span className="cursor" style={{ opacity: showCursor ? 1 : 0 }}>|</span>
+            </h1>
             <div className="welcome-input-container">
               <input
                 className="welcome-input"
