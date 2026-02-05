@@ -15,7 +15,7 @@ load_dotenv()
 
 class VideoService:
     def __init__(self):
-        self.base_url = os.getenv("VIDEO_GEN_URL", "http://localhost:7862")
+        self.base_url = os.getenv("VIDEO_GEN_URL", "http://localhost:7861")
         self.default_model = os.getenv("VIDEO_GEN_MODEL", "stable-video-diffusion")
     
     async def check_health(self) -> bool:

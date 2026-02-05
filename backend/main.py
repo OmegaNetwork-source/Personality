@@ -26,12 +26,14 @@ try:
     from services.memory_service import MemoryService
     from services.task_service import TaskService
     from services.bot_manager import BotManager
+    from services.filesystem_service import FileSystemService
     HAS_BOT_SERVICES = True
 except ImportError as e:
     print(f"[WARNING] Bot services not available: {e}. Continuing without bot features.")
     MemoryService = None
     TaskService = None
     BotManager = None
+    FileSystemService = None
     HAS_BOT_SERVICES = False
 
 load_dotenv()
@@ -68,7 +70,12 @@ coingecko_service = CoinGeckoService()
 # Initialize Memory and Task Services (24/7 features) - optional
 if HAS_BOT_SERVICES:
     memory_service = MemoryService()
-    task_service = TaskService(memory_service=memory_service, ollama_service=ollama_service)
+    filesystem_service = FileSystemService()  # Will be set when user selects folder
+    task_service = TaskService(
+        memory_service=memory_service,
+        ollama_service=ollama_service,
+        filesystem_service=filesystem_service
+    )
     bot_manager = BotManager(
         ollama_service=ollama_service,
         personality_service=personality_service,
@@ -77,6 +84,7 @@ if HAS_BOT_SERVICES:
     )
 else:
     memory_service = None
+    filesystem_service = None
     task_service = None
     bot_manager = None
 
@@ -582,9 +590,28 @@ async def chat(request: ChatRequest):
                 "content": ai_info
             })
         
+        # Detect website/HTML requests and enhance prompt to generate HTML code
+        message_lower = request.message.lower()
+        website_keywords = ["website", "web site", "html", "create a site", "build a site", "make a website", 
+                           "need a website", "website about", "html code", "html page", "web page"]
+        is_website_request = any(keyword in message_lower for keyword in website_keywords)
+        
+        # If website request detected, enhance the message to ensure HTML code is generated
+        enhanced_message = request.message
+        if is_website_request:
+            enhanced_message = f"""{request.message}
+
+IMPORTANT: The user is asking for a website. You MUST provide complete, working HTML code in a code block. 
+- Wrap your HTML code in ```html code blocks
+- Provide a complete, functional HTML page (with <!DOCTYPE html>, <html>, <head>, and <body> tags)
+- Include CSS styling within <style> tags in the <head>
+- Make it visually appealing and functional
+- Do NOT just describe the website - actually write the HTML code
+- Keep personality expressions minimal within the code block itself"""
+            print(f"[API] Website request detected - enhancing prompt to generate HTML code")
+        
         # Detect crypto-related queries and fetch prices automatically
         crypto_prices = None
-        message_lower = request.message.lower()
         crypto_keywords = ["bitcoin", "btc", "ethereum", "eth", "crypto", "cryptocurrency", "price", "prices", 
                           "solana", "sol", "cardano", "ada", "polkadot", "dot", "chainlink", "link",
                           "litecoin", "ltc", "dogecoin", "doge", "shiba", "shib", "price of", "how much is"]
@@ -671,7 +698,7 @@ async def chat(request: ChatRequest):
         if request.stream:
             return StreamingResponse(
                 ollama_service.chat_stream(
-                    request.message,
+                    enhanced_message,  # Use enhanced message for website requests
                     personality=personality,
                     model=request.model,
                     context=enhanced_context if enhanced_context else None,
@@ -681,7 +708,7 @@ async def chat(request: ChatRequest):
             )
         else:
             response = await ollama_service.chat(
-                request.message,
+                enhanced_message,  # Use enhanced message for website requests
                 personality=personality,
                 model=request.model,
                 context=enhanced_context if enhanced_context else None,
@@ -1054,6 +1081,135 @@ async def whatsapp_webhook(request: Dict[str, Any], user_id: Optional[str] = Non
                 return {"status": "ok"}
         
         return {"status": "ok", "message": "Webhook received but no active bot found"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# File System Endpoints (for Electron app and autonomous agent)
+class FolderRequest(BaseModel):
+    folder_path: str
+
+class FileReadRequest(BaseModel):
+    file_path: str
+
+class FileWriteRequest(BaseModel):
+    file_path: str
+    content: str
+
+class FileCreateRequest(BaseModel):
+    file_path: str
+    content: str = ""
+
+class FileDeleteRequest(BaseModel):
+    file_path: str
+
+class FileTroubleshootRequest(BaseModel):
+    file_path: str
+
+class ExecuteCommandRequest(BaseModel):
+    command: str
+    args: List[str] = []
+    cwd: Optional[str] = None
+
+@app.post("/api/filesystem/set-folder")
+async def set_filesystem_folder(request: FolderRequest):
+    """Set the base folder for file system operations"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        filesystem_service.set_base_folder(request.folder_path)
+        return {"success": True, "message": f"Folder set to: {request.folder_path}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/read")
+async def read_file_api(request: FileReadRequest):
+    """Read a file"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.read_file(request.file_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/write")
+async def write_file_api(request: FileWriteRequest):
+    """Write to a file"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.write_file(request.file_path, request.content)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/create")
+async def create_file_api(request: FileCreateRequest):
+    """Create a new file"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.create_file(request.file_path, request.content)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/delete")
+async def delete_file_api(request: FileDeleteRequest):
+    """Delete a file"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.delete_file(request.file_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/filesystem/list")
+async def list_directory_api(dir_path: str = ""):
+    """List directory contents"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.list_directory(dir_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/troubleshoot")
+async def troubleshoot_file_api(request: FileTroubleshootRequest):
+    """Troubleshoot a file for issues"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.troubleshoot_file(request.file_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/autofix")
+async def autofix_file_api(request: FileTroubleshootRequest):
+    """Automatically fix issues in a file"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.auto_fix_file(request.file_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/filesystem/execute")
+async def execute_command_api(request: ExecuteCommandRequest):
+    """Execute a command in the selected folder"""
+    try:
+        if not HAS_BOT_SERVICES or not filesystem_service:
+            raise HTTPException(status_code=503, detail="File system service not available")
+        result = await filesystem_service.execute_command(
+            request.command,
+            request.args,
+            request.cwd
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

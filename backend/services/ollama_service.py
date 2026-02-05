@@ -13,7 +13,7 @@ load_dotenv()
 class OllamaService:
     def __init__(self):
         self.base_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.default_model = os.getenv("OLLAMA_MODEL", "llama3.1:70b")
+        self.default_model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
         
     async def check_health(self) -> bool:
         """Check if Ollama service is available"""

@@ -26,30 +26,34 @@ This document explains the new features integrated from OpenClaw:
   - Tasks run independently without user interaction
 
 ### 3. Discord Bot Integration ✅
-- **Location**: `backend/services/discord_bot.py`
+- **Location**: `backend/services/discord_bot.py` + `backend/services/bot_manager.py`
 - **What it does**: Allows personalities to chat via Discord
 - **Commands**:
   - `!personality <name>` - Set personality for a channel
   - `!mypersonality <name>` - Set your personal personality (DMs)
   - `!task <type> <data>` - Create autonomous tasks
-- **Setup**: Add `DISCORD_BOT_TOKEN` to `.env`
+- **Setup**: Users configure their own bots via web UI (Settings → Chat Bots tab)
+  - No admin configuration needed!
+  - Each user connects their own Discord bot token
 
 ### 4. Telegram Bot Integration ✅
-- **Location**: `backend/services/telegram_bot.py`
+- **Location**: `backend/services/telegram_bot.py` + `backend/services/bot_manager.py`
 - **What it does**: Allows personalities to chat via Telegram
 - **Commands**:
   - `/start` - Get started
   - `/personality <name>` - Set personality for chat
   - `/mypersonality <name>` - Set your personal personality
   - `/task <type> <message>` - Create autonomous tasks
-- **Setup**: Add `TELEGRAM_BOT_TOKEN` to `.env`
+- **Setup**: Users configure their own bots via web UI (Settings → Chat Bots tab)
+  - No admin configuration needed!
+  - Each user connects their own Telegram bot token
 
 ### 5. WhatsApp Bot Integration ✅
-- **Location**: `backend/services/whatsapp_bot.py`
+- **Location**: `backend/services/whatsapp_bot.py` + `backend/services/bot_manager.py`
 - **What it does**: Allows personalities to chat via WhatsApp (via Twilio)
-- **Setup**: 
-  - Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` to `.env`
-  - Configure webhook endpoint: `/api/whatsapp/webhook`
+- **Setup**: Users configure their own bots via web UI (Settings → Chat Bots tab)
+  - No admin configuration needed!
+  - Each user connects their own Twilio credentials
 
 ## Setup Instructions
 
@@ -60,42 +64,28 @@ pip install -r requirements.txt
 ```
 
 ### 2. Environment Variables
-Add to `.env`:
+Add to `.env` (optional - only if you want admin-level bots):
 ```env
 # Memory and Tasks (automatic)
 MEMORY_DIR=./memory
 TASKS_DIR=./tasks
-
-# Discord Bot (optional)
-DISCORD_BOT_TOKEN=your_discord_bot_token
-
-# Telegram Bot (optional)
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-
-# WhatsApp Bot (optional - requires Twilio)
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890
 ```
 
-### 3. Get Bot Tokens
+**Note**: Bot tokens are now configured per-user via the web UI! No need to add bot tokens to `.env` unless you want a global admin bot.
 
-#### Discord Bot Token:
-1. Go to https://discord.com/developers/applications
-2. Create a new application
-3. Go to "Bot" section
-4. Create a bot and copy the token
-5. Enable "Message Content Intent" in Privileged Gateway Intents
+### 3. User Bot Configuration (Recommended)
 
-#### Telegram Bot Token:
-1. Message @BotFather on Telegram
-2. Send `/newbot` and follow instructions
-3. Copy the token provided
+Users can configure their own bots through the web interface:
 
-#### WhatsApp (Twilio):
-1. Sign up at https://www.twilio.com/
-2. Get your Account SID and Auth Token
-3. Set up WhatsApp Sandbox or get a WhatsApp Business number
+1. Open the Settings modal (click the settings icon)
+2. Go to the "Chat Bots" tab
+3. Follow the instructions for each platform:
+   - **Discord**: Create a bot at https://discord.com/developers/applications
+   - **Telegram**: Create a bot via @BotFather
+   - **WhatsApp**: Set up Twilio account
+4. Paste your token and click "Connect"
+
+Each user manages their own bot tokens - no admin configuration needed!
 
 ### 4. Start the Server
 ```bash
@@ -105,9 +95,9 @@ uvicorn main:app --reload
 
 The server will automatically:
 - Start the 24/7 task scheduler
-- Initialize Discord bot (if token provided)
-- Initialize Telegram bot (if token provided)
-- Initialize WhatsApp bot (if Twilio credentials provided)
+- Initialize Bot Manager (users can connect their own bots via web UI)
+
+**No bot tokens needed in `.env`** - users configure their own bots through the Settings → Chat Bots tab!
 
 ## API Endpoints
 
@@ -173,10 +163,13 @@ curl http://localhost:8000/api/memory/default/history?limit=50
 5. Tasks run in background without blocking the API
 
 ### Chat Bots
-1. Each bot maintains personality mappings per channel/user
-2. Messages are processed through the same chat endpoint
-3. Conversations are saved to memory automatically
-4. Bots support all personality features
+1. **Per-user bot instances** - Each user connects their own bot tokens
+2. Bot tokens are stored securely in the database (per-user)
+3. Each bot maintains personality mappings per channel/user
+4. Messages are processed through the same chat endpoint
+5. Conversations are saved to memory automatically
+6. Bots support all personality features
+7. Users can connect/disconnect bots via web UI (Settings → Chat Bots)
 
 ## Notes
 

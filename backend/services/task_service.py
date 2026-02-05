@@ -13,9 +13,10 @@ import sqlite3
 from contextlib import contextmanager
 
 class TaskService:
-    def __init__(self, memory_service=None, ollama_service=None):
+    def __init__(self, memory_service=None, ollama_service=None, filesystem_service=None):
         self.memory_service = memory_service
         self.ollama_service = ollama_service
+        self.filesystem_service = filesystem_service
         self.tasks_dir = Path(os.getenv("TASKS_DIR", "./tasks"))
         self.tasks_dir.mkdir(exist_ok=True)
         self.running = False
@@ -31,6 +32,12 @@ class TaskService:
         self.register_handler("crypto_price", self._handle_crypto_price_task)
         self.register_handler("reminder", self._handle_reminder_task)
         self.register_handler("custom", self._handle_custom_task)
+        self.register_handler("file_create", self._handle_file_create_task)
+        self.register_handler("file_read", self._handle_file_read_task)
+        self.register_handler("file_write", self._handle_file_write_task)
+        self.register_handler("file_troubleshoot", self._handle_file_troubleshoot_task)
+        self.register_handler("file_autofix", self._handle_file_autofix_task)
+        self.register_handler("execute_command", self._handle_execute_command_task)
     
     def register_handler(self, task_type: str, handler: Callable):
         """Register a task handler"""

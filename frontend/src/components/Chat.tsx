@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Paperclip, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
 import './Chat.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface Props {
   personality: string
@@ -11,15 +11,25 @@ interface Props {
 }
 
 export default function Chat({ personality, userProfile, aiProfile }: Props) {
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
+  const [messages, setMessages] = useState<Array<{ role: string; content: string; image?: string; video?: string; type?: 'text' | 'image' | 'video' }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [playingIndex, setPlayingIndex] = useState<number | null>(null)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showPersonalityVideo, setShowPersonalityVideo] = useState(false)
+  const [personalityVideoSrc, setPersonalityVideoSrc] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const personalityVideoRef = useRef<HTMLVideoElement>(null)
+  const previousPersonalityRef = useRef<string>(personality)
+
+  // Get profile picture path for personality
+  const getPersonalityAvatar = (personalityId: string): string => {
+    // Try to load personality-specific avatar, fallback to default
+    return `/avatars/${personalityId}.png`
+  }
 
   // Load voices when component mounts
   useEffect(() => {
@@ -42,6 +52,39 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Handle personality video playback
+  useEffect(() => {
+    // Check if personality changed to one that needs a video
+    if (personality !== previousPersonalityRef.current) {
+      previousPersonalityRef.current = personality
+      
+      // Check if this personality needs a video
+      let videoPath: string | null = null
+      if (personality === 'slave') {
+        videoPath = '/videos/slave.mp4'
+      } else if (personality === 'airdrop_farmer') {
+        videoPath = '/videos/airdrop.mp4'
+      } else if (personality === 'vietnam_vet') {
+        videoPath = '/videos/vet.mp4'
+      } else if (personality === 'gangster') {
+        videoPath = '/videos/gangster.mp4'
+      }
+      
+      if (videoPath) {
+        setPersonalityVideoSrc(videoPath)
+        setShowPersonalityVideo(true)
+        // Clear messages when showing video
+        setMessages([])
+      }
+    }
+  }, [personality])
+
+  const handlePersonalityVideoEnd = () => {
+    setShowPersonalityVideo(false)
+    setPersonalityVideoSrc(null)
+    // Video ended, return to chat
+  }
 
   const handleFileUpload = () => {
     fileInputRef.current?.click()
@@ -133,6 +176,145 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     }
   }
 
+  // Detect if message contains image or video generation request
+  const detectGenerationRequest = (message: string): { type: 'image' | 'video' | null; prompt: string } => {
+    const lowerMessage = message.toLowerCase()
+    
+    // Image generation keywords
+    const imageKeywords = ['generate image', 'create image', 'make image', 'draw image', 'image of', 'picture of', 'generate a picture', 'create a picture', 'make a picture', 'draw a picture', 'show me an image', 'show me a picture', 'generate image', 'create image', 'make image', 'draw image']
+    
+    // Video generation keywords
+    const videoKeywords = ['generate video', 'create video', 'make video', 'video of', 'generate a video', 'create a video', 'make a video', 'show me a video', 'generate video', 'create video', 'make video']
+    
+    // Check for image request
+    for (const keyword of imageKeywords) {
+      if (lowerMessage.includes(keyword)) {
+        // Extract prompt (everything after the keyword)
+        const keywordIndex = lowerMessage.indexOf(keyword)
+        let prompt = message.substring(keywordIndex + keyword.length).trim()
+        
+        // If prompt is empty, try to extract from context
+        if (!prompt) {
+          // Try to find a description after common phrases
+          const descriptionPatterns = [
+            /(?:of|showing|with|depicting|featuring)\s+(.+)/i,
+            /(?:a|an)\s+(.+?)(?:\.|$)/i
+          ]
+          for (const pattern of descriptionPatterns) {
+            const match = message.match(pattern)
+            if (match && match[1]) {
+              prompt = match[1].trim()
+              break
+            }
+          }
+        }
+        
+        // If still no prompt, use the whole message
+        if (!prompt) {
+          prompt = message.replace(new RegExp(keyword, 'gi'), '').trim()
+        }
+        
+        return { type: 'image', prompt: prompt || 'a beautiful image' }
+      }
+    }
+    
+    // Check for video request
+    for (const keyword of videoKeywords) {
+      if (lowerMessage.includes(keyword)) {
+        // Extract prompt (everything after the keyword)
+        const keywordIndex = lowerMessage.indexOf(keyword)
+        let prompt = message.substring(keywordIndex + keyword.length).trim()
+        
+        // If prompt is empty, try to extract from context
+        if (!prompt) {
+          // Try to find a description after common phrases
+          const descriptionPatterns = [
+            /(?:of|showing|with|depicting|featuring)\s+(.+)/i,
+            /(?:a|an)\s+(.+?)(?:\.|$)/i
+          ]
+          for (const pattern of descriptionPatterns) {
+            const match = message.match(pattern)
+            if (match && match[1]) {
+              prompt = match[1].trim()
+              break
+            }
+          }
+        }
+        
+        // If still no prompt, use the whole message
+        if (!prompt) {
+          prompt = message.replace(new RegExp(keyword, 'gi'), '').trim()
+        }
+        
+        return { type: 'video', prompt: prompt || 'a beautiful video' }
+      }
+    }
+    
+    return { type: null, prompt: '' }
+  }
+
+  const generateImage = async (prompt: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/image/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          prompt,
+          negative_prompt: '',
+          width: 1024,
+          height: 1024
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const data = await response.json()
+      if (data.image) {
+        return `data:image/png;base64,${data.image}`
+      } else {
+        throw new Error('No image in response')
+      }
+    } catch (error: any) {
+      throw new Error(`Image generation failed: ${error.message}`)
+    }
+  }
+
+  const generateVideo = async (prompt: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/video/generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          prompt,
+          duration: 4
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const data = await response.json()
+      if (data.video) {
+        return `data:video/mp4;base64,${data.video}`
+      } else {
+        throw new Error('No video in response')
+      }
+    } catch (error: any) {
+      throw new Error(`Video generation failed: ${error.message}`)
+    }
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return
 
@@ -143,6 +325,50 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
 
     try {
+      // Check if this is an image or video generation request
+      const genRequest = detectGenerationRequest(userMessage)
+      
+      if (genRequest.type === 'image') {
+        // Generate image
+        try {
+          const imageData = await generateImage(genRequest.prompt)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Here's the image you requested: "${genRequest.prompt}"`,
+            image: imageData,
+            type: 'image'
+          }])
+        } catch (error: any) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Sorry, I couldn't generate the image. ${error.message}` 
+          }])
+        }
+        setLoading(false)
+        return
+      }
+      
+      if (genRequest.type === 'video') {
+        // Generate video
+        try {
+          const videoData = await generateVideo(genRequest.prompt)
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Here's the video you requested: "${genRequest.prompt}"`,
+            video: videoData,
+            type: 'video'
+          }])
+        } catch (error: any) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Sorry, I couldn't generate the video. ${error.message}` 
+          }])
+        }
+        setLoading(false)
+        return
+      }
+
+      // Regular chat message
       // Build context with user and AI profile info
       const context = []
       if (userProfile) {
@@ -176,7 +402,7 @@ export default function Chat({ personality, userProfile, aiProfile }: Props) {
       const data = await response.json()
       const aiMessage = data.message?.content || data.response || 'No response'
 
-      setMessages(prev => [...prev, { role: 'assistant', content: aiMessage }])
+      setMessages(prev => [...prev, { role: 'assistant', content: aiMessage, type: 'text' }])
     } catch (error) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
@@ -388,14 +614,40 @@ ${cleanedCode}
             {messages.map((msg, idx) => (
               <div key={idx} className={`message-wrapper ${msg.role}`}>
                 <div className={`message ${msg.role}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="message-avatar">
+                      <img 
+                        src={getPersonalityAvatar(personality)} 
+                        alt={personality}
+                        className="avatar-image"
+                        onError={(e) => {
+                          // Fallback to default avatar if personality-specific one doesn't exist
+                          const target = e.target as HTMLImageElement
+                          target.src = '/avatars/default.png'
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="message-content-wrapper">
                     {msg.role === 'assistant' ? (
-                      renderMessageContent(msg.content)
+                      <>
+                        {msg.type === 'image' && msg.image && (
+                          <div className="generated-image-container">
+                            <img src={msg.image} alt="Generated" className="generated-image" />
+                          </div>
+                        )}
+                        {msg.type === 'video' && msg.video && (
+                          <div className="generated-video-container">
+                            <video src={msg.video} controls className="generated-video" />
+                          </div>
+                        )}
+                        {msg.content && renderMessageContent(msg.content)}
+                      </>
                     ) : (
                       <div className="message-content">{msg.content}</div>
                     )}
                     <div className="message-actions">
-                      {msg.role === 'assistant' && (
+                      {msg.role === 'assistant' && msg.content && (
                         <button 
                           className="play-button"
                           onClick={() => handlePlayAudio(msg.content, idx)}
@@ -410,7 +662,7 @@ ${cleanedCode}
                       )}
                       <button 
                         className="copy-button"
-                        onClick={() => handleCopy(msg.content, idx)}
+                        onClick={() => handleCopy(msg.content || '', idx)}
                         title="Copy message"
                       >
                         {copiedIndex === idx ? (
@@ -427,11 +679,24 @@ ${cleanedCode}
             {loading && (
               <div className="message-wrapper assistant">
                 <div className="message assistant">
-                  <div className="message-content">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                  <div className="message-avatar">
+                    <img 
+                      src={getPersonalityAvatar(personality)} 
+                      alt={personality}
+                      className="avatar-image"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.src = '/avatars/default.png'
+                      }}
+                    />
+                  </div>
+                  <div className="message-content-wrapper">
+                    <div className="message-content">
+                      <div className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -481,6 +746,24 @@ ${cleanedCode}
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Personality Video Overlay */}
+      {showPersonalityVideo && personalityVideoSrc && (
+        <div className="personality-video-overlay">
+          <video
+            ref={personalityVideoRef}
+            src={personalityVideoSrc}
+            autoPlay
+            className="personality-video"
+            onEnded={handlePersonalityVideoEnd}
+            onError={(e) => {
+              console.error('Video playback error:', e)
+              // If video fails to load, just close and return to chat
+              handlePersonalityVideoEnd()
+            }}
+          />
         </div>
       )}
     </div>
