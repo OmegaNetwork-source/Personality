@@ -8,7 +8,11 @@ import json
 from typing import Optional, List, Dict, Any, AsyncGenerator
 from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    load_dotenv()
+except Exception as e:
+    print(f"Warning: Could not load .env file: {e}")
+    # Continue without .env file - will use defaults
 
 class OllamaService:
     def __init__(self):

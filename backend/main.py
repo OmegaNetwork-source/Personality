@@ -14,6 +14,15 @@ import json
 import asyncio
 from pathlib import Path
 
+# Load .env file with error handling for encoding issues
+try:
+    load_dotenv()
+except UnicodeDecodeError:
+    # If .env has encoding issues, try to recreate it or skip it
+    print("Warning: .env file has encoding issues. Using default values.")
+except Exception as e:
+    print(f"Warning: Could not load .env file: {e}. Using default values.")
+
 from services.ollama_service import OllamaService
 from services.image_service import ImageService
 from services.video_service import VideoService
