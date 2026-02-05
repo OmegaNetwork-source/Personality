@@ -7,7 +7,7 @@ import Navbar from './components/Navbar'
 import Settings from './components/Settings'
 import './App.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
   const [selectedPersonality, setSelectedPersonality] = useState('default')

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X, Globe, Sparkles, Languages } from 'lucide-react'
 import './PersonalityEditor.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface Personality {
   id: string

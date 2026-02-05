@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Send, Bot, Play, RotateCcw } from 'lucide-react'
 import './AIToAIChat.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://jarrett-balloonlike-julietta.ngrok-free.dev'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface Props {
   personalities: Array<{ id: string; name: string; description: string }>
