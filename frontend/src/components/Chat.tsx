@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
+import { Send, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
 import './Chat.css'
 import { offlineService } from '../services/OfflineService'
 
@@ -25,7 +25,6 @@ export default function Chat({ personality, setPersonality, personalities, userP
   const [showPersonalityVideo, setShowPersonalityVideo] = useState(false)
   const [personalityVideoSrc, setPersonalityVideoSrc] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const personalityVideoRef = useRef<HTMLVideoElement>(null)
   const previousPersonalityRef = useRef<string>(personality)
 
@@ -74,7 +73,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
     let mounted = true
 
     const typeWriter = async () => {
-      const phrase1 = "The only AI with ATTITUDE"
+      const phrase1 = "The only AI with Attitude"
       const phrase2 = "Type to get Started"
 
       // Initial delay
@@ -205,27 +204,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
     }
   }, [showPersonalityVideo, personalityVideoSrc])
 
-  const handleFileUpload = () => {
-    fileInputRef.current?.click()
-  }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Handle file upload - you can add file processing logic here
-      console.log('File selected:', file.name, file.type, file.size)
-
-      // For now, add a message showing the file was attached
-      // You can extend this to actually process/upload the file
-      const fileInfo = `📎 Attached: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`
-      setInput(prev => prev ? `${prev}\n${fileInfo}` : fileInfo)
-
-      // Reset the input so the same file can be selected again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
 
   const handleCopy = async (content: string, index: number) => {
     try {
@@ -707,13 +686,6 @@ ${cleanedCode}
 
   return (
     <div className="chat-container">
-      <input
-        ref={fileInputRef}
-        type="file"
-        style={{ display: 'none' }}
-        onChange={handleFileChange}
-        multiple
-      />
       {!hasMessages ? (
         <div className="chat-welcome-screen">
           <div className="welcome-content">
@@ -735,9 +707,6 @@ ${cleanedCode}
                 disabled={loading}
               />
               <div className="welcome-input-actions">
-                <button className="attach-button" onClick={handleFileUpload} title="Attach file">
-                  <Paperclip size={20} />
-                </button>
                 <button className="input-action-btn send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>
                   <Send size={18} />
                 </button>
@@ -882,18 +851,18 @@ ${cleanedCode}
               {showPersonalityMenu && (
                 <div className="personality-menu" style={{
                   position: 'absolute',
-                  bottom: '50px',
+                  bottom: '60px',
                   left: '0',
                   backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '8px',
-                  width: '200px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                  borderRadius: '16px',
+                  padding: '12px',
+                  width: '320px',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                   zIndex: 100,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px'
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '8px'
                 }}>
                   {personalities.map(p => (
                     <button
@@ -903,29 +872,52 @@ ${cleanedCode}
                         setShowPersonalityMenu(false)
                       }}
                       style={{
-                        padding: '8px 12px',
-                        textAlign: 'left',
+                        padding: '12px 4px',
                         background: personality === p.id ? 'var(--bg-secondary)' : 'transparent',
-                        border: 'none',
-                        borderRadius: '8px',
+                        border: '1px solid',
+                        borderColor: personality === p.id ? 'var(--accent-color)' : 'transparent',
+                        borderRadius: '12px',
                         color: 'var(--text-primary)',
                         cursor: 'pointer',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: '8px',
-                        fontSize: '14px'
+                        fontSize: '11px',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        height: '100px'
                       }}
                     >
-                      <img
-                        src={getPersonalityAvatar(p.id)}
-                        alt={p.name}
-                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = '/avatars/default.png'
-                        }}
-                      />
-                      {p.name}
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: personality === p.id ? '2px solid var(--accent-color)' : '2px solid transparent',
+                        marginBottom: '4px'
+                      }}>
+                        <img
+                          src={getPersonalityAvatar(p.id)}
+                          alt={p.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = '/avatars/default.png'
+                          }}
+                        />
+                      </div>
+                      <span style={{
+                        lineHeight: '1.2',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {p.name}
+                      </span>
                     </button>
                   ))}
                 </div>
