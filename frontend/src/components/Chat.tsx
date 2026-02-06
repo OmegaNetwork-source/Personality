@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Copy, Check, Eye, Volume2, VolumeX } from 'lucide-react'
+import { Send, Copy, Check, Eye, Volume2, VolumeX, LayoutGrid, ArrowRight } from 'lucide-react'
 import './Chat.css'
 import { offlineService } from '../services/OfflineService'
 
@@ -31,6 +31,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
   // Get profile picture path for personality
   const getPersonalityAvatar = (personalityId: string): string => {
     // Try to load personality-specific avatar, fallback to default
+    if (!personalityId) return '/avatars/default.png'
     return `/avatars/${personalityId}.png`
   }
 
@@ -75,7 +76,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
 
     const typeWriter = async () => {
       const phrase1 = "The only AI with Attitude"
-      const phrase2 = "Type to get Started"
+      // const phrase2 = "Pick your Buddy"
 
       // Initial delay
       await new Promise(r => setTimeout(r, 500))
@@ -89,27 +90,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
         await new Promise(r => setTimeout(r, 50))
       }
 
-      // Pause
-      await new Promise(r => setTimeout(r, 1500))
-      if (!mounted) return
-
-      // Delete phrase 1
-      for (let i = phrase1.length; i >= 0; i--) {
-        if (!mounted) return
-        setWelcomeText(phrase1.substring(0, i))
-        await new Promise(r => setTimeout(r, 30))
-      }
-
-      // Pause briefly
-      await new Promise(r => setTimeout(r, 300))
-      if (!mounted) return
-
-      // Type phrase 2
-      for (let i = 0; i <= phrase2.length; i++) {
-        if (!mounted) return
-        setWelcomeText(phrase2.substring(0, i))
-        await new Promise(r => setTimeout(r, 50))
-      }
+      // Done typing phrase 1 - stop here
     }
 
     typeWriter()
@@ -136,7 +117,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
   // Handle personality video playback
   useEffect(() => {
     // Check if personality changed to one that needs a video
-    if (personality !== previousPersonalityRef.current) {
+    if (personality && personality !== previousPersonalityRef.current) {
       previousPersonalityRef.current = personality
 
       // Check if this personality needs a video
@@ -685,7 +666,7 @@ ${cleanedCode}
     return <div className="message-content-parsed">{parts}</div>
   }
 
-  const hasMessages = messages.length > 0
+  const hasMessages = messages.length > 0 && personality !== ''
 
   return (
     <div className="chat-container">
@@ -696,24 +677,113 @@ ${cleanedCode}
               {welcomeText}
               <span className="cursor" style={{ opacity: showCursor ? 1 : 0 }}>|</span>
             </h1>
-            <div className="welcome-input-container">
-              <input
-                className="welcome-input"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                onFocus={() => {
-                  // On mobile, when user focuses input, it transitions to chat view
-                  // The input will remain focused and ready for typing
+            <div className="welcome-input-container" style={{ position: 'relative' }}>
+              <div
+                className="welcome-input-trigger"
+                onClick={() => setShowPersonalityMenu(!showPersonalityMenu)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  height: '100%',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  color: 'var(--text-secondary)'
                 }}
-                placeholder="Ask anything"
-                disabled={loading}
-              />
+              >
+                Pick your AI Personality...
+              </div>
               <div className="welcome-input-actions">
-                <button className="input-action-btn send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>
-                  <Send size={18} />
+                <div style={{ animation: 'bounce-right 1s infinite', display: 'flex', alignItems: 'center', color: 'var(--accent-color)', marginRight: '8px' }}>
+                  <ArrowRight size={20} />
+                </div>
+                <button
+                  className="input-action-btn send-btn glow-button"
+                  onClick={() => setShowPersonalityMenu(!showPersonalityMenu)}
+                  title="Pick your Buddy"
+                >
+                  <LayoutGrid size={18} />
                 </button>
               </div>
+
+              {/* Personality Menu for Welcome Screen */}
+              {showPersonalityMenu && (
+                <div className="personality-menu welcome-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '0',
+                  marginTop: '12px',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '12px',
+                  width: '100%',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  zIndex: 100,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '8px'
+                }}>
+                  {personalities.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPersonality(p.id)
+                        setShowPersonalityMenu(false)
+                      }}
+                      style={{
+                        padding: '12px 4px',
+                        background: personality === p.id ? 'var(--bg-secondary)' : 'transparent',
+                        border: '1px solid',
+                        borderColor: personality === p.id ? 'var(--accent-color)' : 'transparent',
+                        borderRadius: '12px',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '11px',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        height: '100px'
+                      }}
+                    >
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: personality === p.id ? '2px solid var(--accent-color)' : '2px solid transparent',
+                        marginBottom: '4px'
+                      }}>
+                        <img
+                          src={getPersonalityAvatar(p.id)}
+                          alt={p.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = '/avatars/default.png'
+                          }}
+                        />
+                      </div>
+                      <span style={{
+                        lineHeight: '1.2',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {p.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

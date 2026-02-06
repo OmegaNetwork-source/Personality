@@ -5,9 +5,10 @@ import Chat from './components/Chat'
 import Navbar from './components/Navbar'
 import './App.css'
 import { personalities as localPersonalities } from './data/personalities'
+import DisclaimerModal from './components/DisclaimerModal'
 
 function App() {
-  const [selectedPersonality, setSelectedPersonality] = useState('vietnam_vet')
+  const [selectedPersonality, setSelectedPersonality] = useState('')
   const [personalities, setPersonalities] = useState<any[]>([])
   const [userProfile, setUserProfile] = useState<any>(null)
   const [aiProfile, setAIProfile] = useState<any>(null)
@@ -16,21 +17,16 @@ function App() {
     // Load local personalities
     setPersonalities(localPersonalities)
     const savedUser = localStorage.getItem('userProfile')
-    const savedAI = localStorage.getItem('aiProfile')
-    const savedPersonality = localStorage.getItem('selectedPersonality')
-    if (savedUser) setUserProfile(JSON.parse(savedUser))
-    if (savedAI) {
-      const ai = JSON.parse(savedAI)
-      setAIProfile(ai)
-      if (ai.personality) setSelectedPersonality(ai.personality)
-    }
-    if (savedPersonality) setSelectedPersonality(savedPersonality)
+
+
+
   }, [])
 
   return (
     <ThemeProvider>
       <Router>
         <div className="App">
+          <DisclaimerModal />
           <Navbar
             userProfile={userProfile}
             aiProfile={aiProfile}
