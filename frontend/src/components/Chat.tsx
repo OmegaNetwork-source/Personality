@@ -27,6 +27,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const personalityVideoRef = useRef<HTMLVideoElement>(null)
   const previousPersonalityRef = useRef<string>(personality)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Get profile picture path for personality
   const getPersonalityAvatar = (personalityId: string): string => {
@@ -162,6 +163,16 @@ export default function Chat({ personality, setPersonality, personalities, userP
     setPersonalityVideoSrc(null)
     // Video ended, return to chat
   }
+
+  // Refocus input when loading finishes
+  useEffect(() => {
+    if (!loading && inputRef.current) {
+      // Small timeout to ensure the disabled attribute is removed
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 10)
+    }
+  }, [loading])
 
   // Ensure video plays when it's shown
   useEffect(() => {
@@ -998,6 +1009,7 @@ ${cleanedCode}
             </div>
 
             <input
+              ref={inputRef}
               className="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
