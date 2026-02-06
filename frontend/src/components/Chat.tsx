@@ -44,6 +44,7 @@ export default function Chat({ personality, setPersonality, personalities, userP
       'serial_killer': 'Serial Killer',
       'chicken': 'Chicken',
       'burrito': 'Burrito',
+      't-800': 'T-800',
       'default': 'Default'
     }
     return nameMap[personalityId] || personalityId
@@ -154,6 +155,8 @@ export default function Chat({ personality, setPersonality, personalities, userP
         videoPath = '/videos/chicken.mov'
       } else if (personality === 'burrito') {
         videoPath = '/videos/burrito.mov'
+      } else if (personality === 't-800') {
+        videoPath = 'https://media1.tenor.com/m/NOHR6Zg97GYAAAAC/terminator-terminator-robot.gif'
       }
 
       if (videoPath) {
@@ -971,28 +974,46 @@ ${cleanedCode}
           <div className="personality-video-container">
             <h2 className="personality-video-title">{getPersonalityName(personality)}</h2>
             <div className="personality-video-wrapper">
-              <video
-                ref={personalityVideoRef}
-                src={personalityVideoSrc}
-                autoPlay
-                playsInline
-                className="personality-video"
-                onEnded={handlePersonalityVideoEnd}
-                onLoadedData={() => {
-                  // Ensure video plays when loaded
-                  if (personalityVideoRef.current) {
-                    personalityVideoRef.current.play().catch(err => {
-                      console.error('Video play error:', err)
-                    })
-                  }
-                }}
-                onError={(e) => {
-                  console.error('Video playback error:', e)
-                  console.error('Video src:', personalityVideoSrc)
-                  // If video fails to load, just close and return to chat
-                  handlePersonalityVideoEnd()
-                }}
-              />
+              {personalityVideoSrc.endsWith('.mov') || personalityVideoSrc.endsWith('.mp4') ? (
+                <video
+                  ref={personalityVideoRef}
+                  src={personalityVideoSrc}
+                  autoPlay
+                  playsInline
+                  className="personality-video"
+                  onEnded={handlePersonalityVideoEnd}
+                  onLoadedData={() => {
+                    // Ensure video plays when loaded
+                    if (personalityVideoRef.current) {
+                      personalityVideoRef.current.play().catch(err => {
+                        console.error('Video play error:', err)
+                        // Fallback: If autoplay fails (browsers), just show it
+                      })
+                    }
+                  }}
+                  onError={(e) => {
+                    console.error('Video playback error:', e)
+                    handlePersonalityVideoEnd()
+                  }}
+                />
+              ) : (
+                <img
+                  src={personalityVideoSrc}
+                  alt={getPersonalityName(personality)}
+                  className="personality-video"
+                  style={{ objectFit: 'cover' }}
+                  onLoad={() => {
+                    // For GIFs/Images, show for 4 seconds then close
+                    setTimeout(() => {
+                      handlePersonalityVideoEnd()
+                    }, 4000)
+                  }}
+                  onError={(e) => {
+                    console.error('Image load error:', e)
+                    handlePersonalityVideoEnd()
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
